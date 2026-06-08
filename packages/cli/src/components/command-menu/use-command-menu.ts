@@ -53,7 +53,7 @@ export function useCommandMenu(): UseCommandsMenuReturn {
             }
         }
         else {
-            close()
+            close()  // closes the command menu after submitting a command
         }
 
     }
