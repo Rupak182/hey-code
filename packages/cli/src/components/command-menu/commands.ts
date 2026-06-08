@@ -5,57 +5,84 @@ export const COMMANDS: Command[] = [
     {
         name: "new",
         description: "Start a new conversation",
-        value: "/new"
+        value: "/new",
+        action:(ctx)=>{
+            ctx.toast.show({message:"Starting new conversation..."})
+        }
     },
 
     {
         name: "agents",
         description: "Switch agents",
-        value: "/agents"
+        value: "/agents",
+        action:(ctx)=>{
+            ctx.toast.show({message:"Switching agents..."})
+        }
     },
 
     {
         name: "models",
         description: "Select AI model",
-        value: "/models"
+        value: "/models",
+        action:(ctx)=>{
+            ctx.toast.show({message:"Selecting model..."})
+        }
     },
 
      {
         name: "sessions",
         description: "Browse past sessions",
-        value: "/sessions"
+        value: "/sessions",
+        action:(ctx)=>{
+            ctx.toast.show({message:"Loading sessions..."})
+        }
     },
 
     {
         name: "theme",
         description: "Change color theme",
-        value: "/theme"
+        value: "/theme",
+        action:(ctx)=>{
+            ctx.toast.show({message:"Opening theme picker..."})
+        }
     },
 
 
     {
         name: "login",
         description: "Sign in with your browser",
-        value: "/login"
+        value: "/login",
+        action:(ctx)=>{
+            ctx.toast.show({message:"Opening login page in browser..."})
+        }
     },
 
 
     {
         name: "logout",
         description: "signout of your account",
-        value: "/logout"
+        value: "/logout",
+        action:(ctx)=>{
+            ctx.toast.show({message:"Signing out..."})
+        }
     },
  {
         name: "upgrade",
         description: "Buy more credits",
-        value: "/upgrade"
+        value: "/upgrade",
+        action:(ctx)=>{
+            ctx.toast.show({message:"Opening credits checkout..."})
+        }
     },
     
     
     {
         name: "usage",
         description: "Open billing portal in your browser",
-        value: "/usage"
+        value: "/usage",
+        action:(ctx)=>{
+            ctx.toast.show({message:"Opening billing portal..."})
+        }
     },
     
     {
