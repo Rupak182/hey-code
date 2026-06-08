@@ -3,6 +3,7 @@ import type { Command } from "./types";
 import { useMemo, useRef, useState, type RefObject } from "react";
 import { getFilteredCommands } from "./filter-command";
 import { useKeyboard } from "@opentui/react";
+import { useKeyboardLayer } from "../providers/keyboard-layer";
 
 
 
@@ -21,6 +22,7 @@ export function useCommandMenu(): UseCommandsMenuReturn {
     const [selectedIndex, setSelectedIndex] = useState(0)
     const [showCommandMenu, setShowCommandMenu] = useState(false)
     const scrollRef = useRef<ScrollBoxRenderable | null>(null)
+    const { push, pop, isTopLayer } = useKeyboardLayer()
 
     const commandQuery = showCommandMenu && textValue.startsWith("/") ? textValue.slice(1) : ""
 
@@ -36,79 +38,91 @@ export function useCommandMenu(): UseCommandsMenuReturn {
         }
 
         if (text.startsWith("/")) {
-            const prefix = text.slice(1);
+            const prefix = text.slice(1)
             if (!prefix.includes(" ")) {
-                 setShowCommandMenu(true);
-                 return;
+                setShowCommandMenu(true);
+                push("command", () => {
+                    setShowCommandMenu(false)
+                    pop("command")
+                    return true
+                })
             }
         }
-        setShowCommandMenu(false);
+        else {
+            setShowCommandMenu(false);
+            pop("command")
+        }
+
     }
 
 
 
-    const resolveCommand = (index: number):Command|undefined => {
-        const command= filteredCommands[index]
-        if (!command){
+    const resolveCommand = (index: number): Command | undefined => {
+        const command = filteredCommands[index]
+        if (!command) {
             setShowCommandMenu(false)
+            pop("command")
         }
         return command
     }
 
-    useKeyboard((key)=>{
-        if(!showCommandMenu)
+    useKeyboard((key) => {
+        if (!showCommandMenu || !isTopLayer("command"))
             return
 
-        if(key.name==="escape"){
+        if (key.name === "escape") {
+            key.preventDefault() 
+            setShowCommandMenu(false)
+            pop("command")
             return
         }
-       
 
-         if(key.name==="up"){
+
+        if (key.name === "up") {
             key.preventDefault()
-            setSelectedIndex((prev) =>{
-                const newIndex= Math.max(0,prev-1)
+            setSelectedIndex((prev) => {
+                const newIndex = Math.max(0, prev - 1)
 
-                const sb= scrollRef.current;
-                if(sb && newIndex <sb.scrollTop){
+                const sb = scrollRef.current;
+                if (sb && newIndex < sb.scrollTop) {
                     sb.scrollTo(newIndex)
                 }
                 return newIndex
             })
         }
 
-        else if(key.name==="down"){
+        else if (key.name === "down") {
             key.preventDefault()
-            setSelectedIndex((prev)=>{
-                const maxIndex= filteredCommands.length-1;
-                const newIndex= Math.max(maxIndex, prev+1)
+            setSelectedIndex((prev) => {
+                const maxIndex = filteredCommands.length - 1;
+                const newIndex = Math.max(maxIndex, prev + 1)
 
-                const sb= scrollRef.current;
-                if(sb ){
-                    const viewPortHeight= sb.viewport.height
-                    const visibleEnd= sb.scrollTop+viewPortHeight-1
-                    if(newIndex > visibleEnd) {
-                        sb.scrollTo(newIndex-viewPortHeight+1)
+                const sb = scrollRef.current;
+                if (sb) {
+                    const viewPortHeight = sb.viewport.height
+                    const visibleEnd = sb.scrollTop + viewPortHeight - 1
+                    if (newIndex > visibleEnd) {
+                        sb.scrollTo(newIndex - viewPortHeight + 1)
                     }
                 }
                 return newIndex
             })
         }
 
-    
 
-   
+
+
     })
 
-        return {
-            showCommandMenu,
-            commandQuery,
-            selectedIndex,
-            scrollRef,
-            handleContentChange,
-            resolveCommand,
-            setSelectedIndex,
-        }
+    return {
+        showCommandMenu,
+        commandQuery,
+        selectedIndex,
+        scrollRef,
+        handleContentChange,
+        resolveCommand,
+        setSelectedIndex,
+    }
 
 
 }    

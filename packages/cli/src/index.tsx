@@ -4,9 +4,11 @@ import { Header } from "./components/header";
 import { StatusBar } from "./components/status-bar";
 import { InputBar } from "./components/input-bar";
 import { ToastProvider } from "./components/providers/toast";
+import { KeyboardLayerProvider } from "./components/providers/keyboard-layer";
 
 function App() {
   return (
+    <KeyboardLayerProvider>
     <ToastProvider>
     <box
     alignItems="center"
@@ -22,6 +24,7 @@ function App() {
       </box>
     </box>
     </ToastProvider>
+    </KeyboardLayerProvider>
   );
 }
 
