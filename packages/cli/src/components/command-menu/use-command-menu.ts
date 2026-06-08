@@ -28,6 +28,11 @@ export function useCommandMenu(): UseCommandsMenuReturn {
 
     const filteredCommands = useMemo(() => getFilteredCommands(commandQuery), [commandQuery])
 
+
+    const close =()=>{
+        setShowCommandMenu(false)
+        pop("command")
+    }
     const handleContentChange = (text: string) => {
         setTextValue(text)
         setSelectedIndex(0)
@@ -42,15 +47,13 @@ export function useCommandMenu(): UseCommandsMenuReturn {
             if (!prefix.includes(" ")) {
                 setShowCommandMenu(true);
                 push("command", () => {
-                    setShowCommandMenu(false)
-                    pop("command")
+                    close()
                     return true
                 })
             }
         }
         else {
-            setShowCommandMenu(false);
-            pop("command")
+            close()
         }
 
     }
@@ -60,8 +63,7 @@ export function useCommandMenu(): UseCommandsMenuReturn {
     const resolveCommand = (index: number): Command | undefined => {
         const command = filteredCommands[index]
         if (!command) {
-            setShowCommandMenu(false)
-            pop("command")
+            close()
         }
         return command
     }
@@ -72,8 +74,7 @@ export function useCommandMenu(): UseCommandsMenuReturn {
 
         if (key.name === "escape") {
             key.preventDefault() 
-            setShowCommandMenu(false)
-            pop("command")
+            close()
             return
         }
 
@@ -95,7 +96,7 @@ export function useCommandMenu(): UseCommandsMenuReturn {
             key.preventDefault()
             setSelectedIndex((prev) => {
                 const maxIndex = filteredCommands.length - 1;
-                const newIndex = Math.max(maxIndex, prev + 1)
+                const newIndex = Math.min(maxIndex, prev + 1)
 
                 const sb = scrollRef.current;
                 if (sb) {

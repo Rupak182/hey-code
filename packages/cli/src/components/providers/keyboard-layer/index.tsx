@@ -75,7 +75,6 @@ export function KeyboardLayerProvider({
             if(responder && responder()){
                 return
             }
-
           }
 
          renderer.destroy()

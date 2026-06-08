@@ -16,7 +16,14 @@ export const COMMANDS: Command[] = [
         description: "Switch agents",
         value: "/agents",
         action:(ctx)=>{
-            ctx.toast.show({message:"Switching agents..."})
+            ctx.dialog.open({
+                title:"Switch Agents",
+                children:(
+                    <box>
+                        <text>Agents selection coming soon...</text>
+                    </box>
+                )
+            })
         }
     },
 
@@ -24,8 +31,15 @@ export const COMMANDS: Command[] = [
         name: "models",
         description: "Select AI model",
         value: "/models",
-        action:(ctx)=>{
-            ctx.toast.show({message:"Selecting model..."})
+         action:(ctx)=>{
+            ctx.dialog.open({
+                title:"Select Model",
+                children:(
+                    <box>
+                        <text>Model selection coming soon...</text>
+                    </box>
+                )
+            })
         }
     },
 
