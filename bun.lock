@@ -8,6 +8,7 @@
     "packages/cli": {
       "name": "@nightcode/cli",
       "dependencies": {
+        "@heycode/shared": "workspace:*",
         "@opentui/core": "^0.3.2",
         "@opentui/react": "^0.3.2",
         "hono": "^4.12.25",

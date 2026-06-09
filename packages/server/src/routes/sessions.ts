@@ -63,7 +63,7 @@ const app=new Hono()
         return c.json(result)
     })
     .get(":id",async (c)=>{
-        // await new Promise((resolve)=>setTimeout(resolve,1000))
+        // await new Promise((resolve)=>setTimeout(resolve,10000))
 
         // throw new HTTPException(500,
         //     { message:"Mock error"}
@@ -82,6 +82,8 @@ const app=new Hono()
         return c.json(session)
     })
     .post("/",createSessionValidator,async (c)=>{
+                // await new Promise((resolve)=>setTimeout(resolve,10000))
+
         const {initialMessage,...data}= c.req.valid("json")
         
         const id= String(nextId++)
@@ -115,11 +117,7 @@ const app=new Hono()
 
         sessions.push(session)
 
-        return c.json({
-            id:session.id,
-            title:session.title,
-            createdAt:session.createdAt
-        },201)
+        return c.json(session, 201)
 
 
     })

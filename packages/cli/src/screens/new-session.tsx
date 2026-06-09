@@ -1,35 +1,103 @@
 import { useLocation, useNavigate } from "react-router"
 import { useTheme } from "../components/providers/theme"
-import { useEffect } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import { SessionShell } from "../components/session-shell"
 import { UserMessage } from "../components/messages/user-message"
-import { BotMessage } from "../components/messages/bot-message"
-import { ErrorMessage } from "../components/messages/error-message"
+import {z} from "zod"
+import { useToast } from "../components/providers/toast"
+import { apiClient } from "../lib/api-client"
+import { DEFAULT_CHAT_MODEL_ID } from "@heycode/shared"
+import { getErrorMessage } from "../lib/http-errors"
+
+
+const newSessionStateSchema= z.object({
+    message:z.string()
+})
 
 
 
-export function NewSession(){
-    const navigate= useNavigate()
+export function NewSession() {
+    const navigate = useNavigate()
     const location = useLocation()
-    const {colors}= useTheme()
-    const state  =location.state as {message?:string} |null
-    
+    const { colors } = useTheme()
+    const toast = useToast()
+    const hasStartedRef= useRef(false)
+
+    const state = useMemo(()=>{
+        const parsed= newSessionStateSchema.safeParse(location.state)
+        if(!parsed.success){
+            return null
+        }
+        return parsed.data
+    },[location.state])
+
+
+    useEffect(() => {
+        if (!state) {
+            navigate("/", { replace: true })
+        }
+    }, [navigate, state])
+
 
     useEffect(()=>{
-        if(!state?.message){
-            navigate("/",{replace:true})
+        if(!state || hasStartedRef.current){
+            return
         }
-    },[navigate,state])
+        hasStartedRef.current=true
 
-    if(!state?.message){
+        let ignore =false
+
+        const createSession = async()=>{
+            try{
+                const res= await apiClient.sessions.$post({
+                    json:{
+                        title:state.message.slice(0,100),
+                        cwd:process.cwd(),
+                        initialMessage:{
+                            role:'USER',
+                            content:state.message,
+                            mode:'BUILD',
+                            model:DEFAULT_CHAT_MODEL_ID,
+                        }
+                    }
+                })
+
+                if(ignore)
+                    return
+
+                if(!res.ok){
+                    throw new Error(await getErrorMessage(res))
+                }
+
+                const session =await res.json()
+                navigate(`/session/${session.id}`, { replace: true,state:{session} })
+                
+            }
+            catch(error){
+                if(ignore)
+                    return
+
+                toast.show({
+                    variant:"error",   
+                    message:error instanceof Error?error.message : "Failed to create session",
+                }
+                )
+                navigate("/",{replace:true})
+            }
+        }
+        createSession()
+        return(()=>{
+            ignore=true
+        })
+    })
+
+    if (!state) {
         return null
     }
-    
+
     return (
-     <SessionShell onSubmit={()=>{}} inputDisabled loading >
-        <UserMessage message={state.message}/>
-        <BotMessage content="This is a sample bot response to demonstate the message layout." model="gpt-5"/>
-     <ErrorMessage message="This is a sample error message" />
-     </SessionShell>
+        <SessionShell onSubmit={() => { }} inputDisabled loading >
+            <UserMessage message={state.message} />
+        </SessionShell>
     )
 }

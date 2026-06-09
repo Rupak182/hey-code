@@ -97,6 +97,7 @@ function Toast({currentToast}:ToastProps){
                </text>
             </box>
         </box>
+        
     )
 }
 
