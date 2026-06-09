@@ -12,8 +12,12 @@ if (!databaseUrl) {
     throw new Error("DATABASE_URL is not defined")
 }
 
-const adapter = new PrismaPg({ connectionString: databaseUrl })
-
+const adapter = new PrismaPg({ 
+    connectionString: databaseUrl,
+    ssl: {
+        rejectUnauthorized: false // Required for many serverless/cloud environments
+    }
+})
 
 
 export const db = new PrismaClient({ adapter })

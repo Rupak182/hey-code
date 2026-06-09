@@ -3,7 +3,7 @@ import { zValidator } from "@hono/zod-validator"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import {z} from "zod"
-import {db} from "@heycode/database"
+import {db} from "@heycode/database/client"
 import {Role,Mode,MessageStatus} from "@heycode/database/enums"
 
 
