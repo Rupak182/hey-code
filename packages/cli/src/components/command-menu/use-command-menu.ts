@@ -110,9 +110,6 @@ export function useCommandMenu(): UseCommandsMenuReturn {
             })
         }
 
-
-
-
     })
 
     return {
