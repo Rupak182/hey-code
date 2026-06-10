@@ -7,9 +7,6 @@ import {db} from "@heycode/database/client"
 import {Role,Mode,MessageStatus} from "@heycode/database/enums"
 
 
-
-
-
 const createSessionSchema=z.object({
     title:z.string(),
     cwd:z.string().optional(),
