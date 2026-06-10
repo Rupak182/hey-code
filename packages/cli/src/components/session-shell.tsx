@@ -1,6 +1,6 @@
-import type { ReactNode } from "react"
+import { useRef, useEffect, type ReactNode } from "react"
 import { InputBar } from "./input-bar"
-import { TextAttributes } from "@opentui/core"
+import { TextAttributes, type ScrollBoxRenderable } from "@opentui/core"
 import { Spinner } from "./spinner"
 
 
@@ -12,6 +12,15 @@ type Props = {
 }
 
 export function SessionShell({ children, onSubmit, inputDisabled = false, loading = false }: Props) {
+    // const scrollRef = useRef<ScrollBoxRenderable>(null)
+
+    // useEffect(() => {
+    //     const scrollbox = scrollRef.current
+    //     if (scrollbox) {
+    //         scrollbox.scrollTop = scrollbox.scrollHeight
+    //     }
+    // }, [children])
+
     return (
         <box
             flexGrow={1}

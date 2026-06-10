@@ -164,6 +164,7 @@ export function InputBar({ onSubmit, disabled }: Props) {
                                 left="0%"
                                 width="100%"
                                 borderColor={colors.surface}
+                                backgroundColor={colors.surface}
                                 zIndex={10}
                             >
                                 <CommandMenu

@@ -30,7 +30,17 @@ export const SUPPORTED_CHAT_MODELS=[
             outputUsdPerMillionTokens:9.00
         },
 
+    },
+    {
+        id:'gemini-2.5-flash-lite',
+        provider:'google',
+        pricing:{
+            inputUsdPerMillionTokens:0.10 ,
+            outputUsdPerMillionTokens:0.40
+        },
+
     }
+    
 ] as const satisfies readonly SupportedChatModelDefinition[]
 
 
@@ -44,4 +54,4 @@ export function findSupportedChatModel(modelId:string){
 }
 
 
-export const DEFAULT_CHAT_MODEL_ID="gemini-3.5-flash"
+export const DEFAULT_CHAT_MODEL_ID="gemini-2.5-flash-lite"
