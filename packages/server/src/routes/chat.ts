@@ -117,7 +117,7 @@ async function streamAIResponse(
         const doneEvent:ChatStreamEvent={
                 type:"done",
                 messageId:assistantMessage.id,
-                duration:elapsedMs,
+                durationMs:elapsedMs,
             }
         await stream.writeSSE({
             event:"done",
