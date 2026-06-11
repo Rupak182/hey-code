@@ -11,6 +11,9 @@ import { useToast } from "../components/providers/toast"
 import prettyMs from "pretty-ms"
 import { useChat, type Message } from "../hooks/useChat"
 import { DEFAULT_CHAT_MODEL_ID, type SupportedChatModelId } from "@heycode/shared"
+import { MessageStatus } from "@heycode/database/enums"
+import { useKeyboardLayer } from "../components/providers/keyboard-layer"
+import { useKeyboard } from "@opentui/react"
 
 type SessionData = InferResponseType<typeof apiClient.sessions[":id"]["$get"], 200>
 
@@ -49,7 +52,8 @@ function mapDbMessages(dbMessages:SessionData['messages']):Message[]{
                     text:m.content
                 }
             ],
-           ...(m.duration ?{duration:prettyMs(m.duration)}:{})
+           ...(m.duration ? { duration: prettyMs(m.duration) } : {}),
+           interrupted: m.status === MessageStatus.INTERRUPTED
         }
     }
     })
@@ -70,20 +74,29 @@ function ChatMessage({ msg }: { msg: Message }): React.ReactNode {
             model={msg.model}
             mode={msg.mode}
             duration={msg.duration}
+            interrupted={msg.interrupted}
         />
     )
-
 }
 
 function SessionChat({session}: {session: SessionData}){
     const [initialMessages,setInitialMessages]= useState<Message[]>(mapDbMessages(session.messages))
-    const {messages,streaming,submit,abort}=useChat(session.id,initialMessages)
+    const {messages,streaming,submit,abort,interrupt}=useChat(session.id,initialMessages)
+    const {isTopLayer}= useKeyboardLayer()
+
 
     useEffect(()=>{
         return ()=>{
             abort()
         }
     },[abort])
+
+    useKeyboard((key)=>{
+      if(key.name==='escape' && isTopLayer("base") && streaming.status==="streaming"){
+        key.preventDefault()
+        interrupt()
+      }
+    })
 
     return (
         <SessionShell onSubmit={(text)=> submit({
@@ -93,6 +106,7 @@ function SessionChat({session}: {session: SessionData}){
         })
          }
         loading={streaming.status==="streaming"}
+        interruptable={streaming.status==="streaming"}
         >
             {
                 messages.map(msg=>(

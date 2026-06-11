@@ -8,10 +8,11 @@ type Props = {
     children?: ReactNode
     onSubmit: (text: string) => void
     inputDisabled?: boolean
-    loading?: boolean
+    loading?: boolean,
+    interruptable?:boolean
 }
 
-export function SessionShell({ children, onSubmit, inputDisabled = false, loading = false }: Props) {
+export function SessionShell({ children, onSubmit, inputDisabled = false, loading = false ,interruptable=false}: Props) {
     // const scrollRef = useRef<ScrollBoxRenderable>(null)
 
     // useEffect(() => {
@@ -53,7 +54,12 @@ export function SessionShell({ children, onSubmit, inputDisabled = false, loadin
                 <box flexDirection="row" alignItems="center" gap={2}>
                     {
                         loading?(
+                            <>
                             <Spinner/>
+                            {interruptable?(
+                                <text>esc to interrupt...</text>
+                            ):null}
+                            </>
                         ):null
                     }
                 </box>

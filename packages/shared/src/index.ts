@@ -3,6 +3,7 @@ export {
     DEFAULT_CHAT_MODEL_ID,
     findSupportedChatModel,
     type SupportedChatModel,
+    type SupportedChatModelId,
     type ModelPricing,
     type SupportedChatModelDefinition,
     type SupportedProvider
