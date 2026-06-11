@@ -1,4 +1,4 @@
-import { ThemeDialogContent } from "../dialogs";
+import { SessionsDialogContent, ThemeDialogContent } from "../dialogs";
 import type { Command, CommandContext } from "./types";
 
 
@@ -48,10 +48,14 @@ export const COMMANDS: Command[] = [
         name: "sessions",
         description: "Browse past sessions",
         value: "/sessions",
-        action:(ctx)=>{
-            ctx.toast.show({message:"Loading sessions..."})
+          action:(ctx)=>{
+            ctx.dialog.open({
+                title:"Sessions",
+                children: <SessionsDialogContent/>
+            })
         }
     },
+
 
     {
         name: "theme",

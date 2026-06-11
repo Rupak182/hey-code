@@ -15,7 +15,7 @@ const router = createMemoryRouter([
     children: [
       { index: true, element: <Home/>},
       { path: "/session/new", element: <NewSession/>},
-      { path: "/session/:id", element: <Session/>},
+      { path: "/sessions/:id", element: <Session/>},
 
     ],
   },

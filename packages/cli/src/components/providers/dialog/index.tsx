@@ -58,7 +58,7 @@ type DialogProps = {
 function Dialog({ currentDialog, close }: DialogProps) {
     const { isTopLayer } = useKeyboardLayer()
     const dimensions = useTerminalDimensions()
-    const {colors}=useTheme()
+    const { colors } = useTheme()
 
     useKeyboard((key) => {
         if (!currentDialog || !isTopLayer("dialog")) return;
@@ -96,17 +96,17 @@ function Dialog({ currentDialog, close }: DialogProps) {
                 onMouseDown={(e) => e.stopPropagation()}
             >
                 <box
-                paddingBottom={1} 
-                flexDirection="row"
-                justifyContent="space-between"
-                alignItems="center"
+                    paddingBottom={1}
+                    flexDirection="row"
+                    justifyContent="space-between"
+                    alignItems="center"
                 >
                     <text attributes={TextAttributes.BOLD}>{title}</text>
                     <text attributes={TextAttributes.DIM} onMouseDown={() => close()}>esc </text>
                 </box>
-              <box flexGrow={1}>
-                {children}
-              </box>
+                <box flexGrow={1}>
+                    {children}
+                </box>
             </box>
 
         </box>
