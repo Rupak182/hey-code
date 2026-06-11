@@ -70,7 +70,7 @@ export function NewSession() {
                 }
 
                 const session =await res.json()
-                navigate(`/session/${session.id}`, { replace: true,state:{session} })
+                navigate(`/sessions/${session.id}`, { replace: true,state:{session} })
                 
             }
             catch(error){
