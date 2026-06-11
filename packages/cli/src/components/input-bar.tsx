@@ -9,6 +9,7 @@ import { useToast } from "./providers/toast";
 import { useKeyboardLayer } from "./providers/keyboard-layer";
 import { useDialog } from "./providers/dialog";
 import { useTheme } from "./providers/theme";
+import { useNavigate } from "react-router";
 
 type Props = {
     onSubmit: (text: string) => void;
@@ -32,6 +33,7 @@ export function InputBar({ onSubmit, disabled }: Props) {
     const { isTopLayer, setResponder } = useKeyboardLayer()
     const dialog = useDialog()
     const { colors } = useTheme()
+    const navigate= useNavigate()
 
     const {
         showCommandMenu,
@@ -82,13 +84,14 @@ export function InputBar({ onSubmit, disabled }: Props) {
             command.action({
                 exit: () => renderer.destroy(),
                 toast,
-                dialog
+                dialog,
+                navigate
             })
         }
         else {
             textarea.insertText(command.value + " ");
         }
-    }, [renderer, toast, dialog])
+    }, [renderer, toast, dialog,navigate])
 
 
     useEffect(() => {

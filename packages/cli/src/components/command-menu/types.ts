@@ -4,7 +4,8 @@ import type { ToastContextValue } from "../providers/toast"
 export type CommandContext={
     exit:()=>void,
     toast: ToastContextValue,
-    dialog:DialogContextValue
+    dialog:DialogContextValue,
+    navigate:(path:string)=>void
 }
 
 
