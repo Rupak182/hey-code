@@ -8,7 +8,19 @@ import { chatStreamEventSchema } from "@heycode/shared"
 import prettyMs from "pretty-ms"
 import { apiClient } from "../lib/api-client"
 
-export type ClientMesagePart = { type: "text", text: string }
+export type ClientMesagePart = 
+{ type: "text", text: string } |{type:'reasoning',text:string} | ClientToolCallPart
+
+export type ClientToolCallPart={
+    type:'tool-call',
+    id:string,
+    name:string,
+    args:Record<string,unknown>
+    result?:string,
+    status:"calling"|"done"
+} // can infer from hono maybe
+
+
 
 
 export type Message =
@@ -182,6 +194,40 @@ export function useChat(
                     const event = chatStreamEventSchema.parse(JSON.parse(data))
 
                     switch (event.type) {
+                        case "reasoning-delta":{
+                            const last= parts[parts.length-1]
+                            if(last && last.type === "reasoning"){
+                                last.text+= event.text
+                            }else{
+                                parts.push({type:"reasoning",text:event.text})
+                            }
+                            emitParts(activeStream.requestId,parts)
+                            break;
+                        }
+
+                        case "tool-call": {
+                            parts.push({
+                                type:"tool-call",
+                                id:event.toolCallId,
+                                name:event.toolName,
+                                args:event.args,
+                                status:"calling"
+                            })
+                            emitParts(activeStream.requestId,parts)
+                            break;
+                        }
+
+                        case "tool-result":{
+                            const tc= parts.find((p): p is ClientToolCallPart=>p.type=== "tool-call" && p.id === event.toolCallId)
+                            if(tc){
+                                tc.result=event.result,
+                                tc.status="done"
+                            }
+
+                            emitParts(activeStream.requestId,parts)
+                            break;
+                        }
+
                         case "text-delta": {
                             const last = parts[parts.length - 1]
                             if (last && last.type === "text") {

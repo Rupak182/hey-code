@@ -6,7 +6,7 @@ export const toolCallArgsSchema = z.record(z.string(), z.json());
 export const messagePartSchema = z.discriminatedUnion("type",[
     z.object({
         type:z.literal("reasoning"),
-        content:z.string()
+        text:z.string()
     }),
     z.object({
         type:z.literal("tool-call"),
@@ -34,7 +34,7 @@ export const chatStreamEventSchema=z.discriminatedUnion("type",[
     }),
     z.object({
         type:z.literal("reasoning-delta"),
-        reasoning:z.string()
+        text:z.string()
     }),
     z.object({
         type:z.literal("tool-call"),

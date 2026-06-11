@@ -14,6 +14,7 @@
         "@ai-sdk/anthropic": "^3.0.82",
         "@ai-sdk/google": "^3.0.80",
         "@ai-sdk/openai": "^3.0.69",
+        "@ai-sdk/provider-utils": "^4.0.27",
         "@heycode/database": "workspace:*",
         "@heycode/shared": "workspace:*",
         "@hono/zod-validator": "^0.8.0",
