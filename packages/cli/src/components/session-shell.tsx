@@ -2,6 +2,7 @@ import { useRef, useEffect, type ReactNode } from "react"
 import { InputBar } from "./input-bar"
 import { TextAttributes, type ScrollBoxRenderable } from "@opentui/core"
 import { Spinner } from "./spinner"
+import { usePromptConfig } from "./providers/prompt-config"
 
 
 type Props = {
@@ -21,6 +22,8 @@ export function SessionShell({ children, onSubmit, inputDisabled = false, loadin
     //         scrollbox.scrollTop = scrollbox.scrollHeight
     //     }
     // }, [children])
+
+    const {mode} = usePromptConfig()
 
     return (
         <box
@@ -55,7 +58,7 @@ export function SessionShell({ children, onSubmit, inputDisabled = false, loadin
                     {
                         loading?(
                             <>
-                            <Spinner/>
+                            <Spinner mode={mode}/>
                             {interruptable?(
                                 <text>esc to interrupt...</text>
                             ):null}

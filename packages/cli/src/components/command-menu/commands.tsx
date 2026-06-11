@@ -1,4 +1,5 @@
-import { SessionsDialogContent, ThemeDialogContent } from "../dialogs";
+import { SUPPORTED_CHAT_MODELS } from "@heycode/shared";
+import { AgentsDialogContent, ModelsDialogContent, SessionsDialogContent, ThemeDialogContent } from "../dialogs";
 import type { Command, CommandContext } from "./types";
 
 
@@ -19,11 +20,7 @@ export const COMMANDS: Command[] = [
         action:(ctx)=>{
             ctx.dialog.open({
                 title:"Switch Agents",
-                children:(
-                    <box>
-                        <text>Agents selection coming soon...</text>
-                    </box>
-                )
+                children:<AgentsDialogContent currentMode={ctx.mode} onSelectMode={ctx.setMode}/>
             })
         }
     },
@@ -33,14 +30,10 @@ export const COMMANDS: Command[] = [
         description: "Select AI model",
         value: "/models",
          action:(ctx)=>{
-            ctx.dialog.open({
+           ctx.dialog.open({
                 title:"Select Model",
-                children:(
-                    <box>
-                        <text>Model selection coming soon...</text>
-                    </box>
-                )
-            })
+                children:<ModelsDialogContent models={SUPPORTED_CHAT_MODELS.map(m => m.id)} onSelectModel={ctx.setModel}/>
+        })
         }
     },
 
