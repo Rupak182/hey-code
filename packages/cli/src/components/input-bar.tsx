@@ -1,7 +1,7 @@
-import type { KeyBinding, TextareaRenderable } from "@opentui/core";
+import { TextAttributes, type KeyBinding, type ScrollBoxRenderable, type TextareaRenderable } from "@opentui/core";
 import { StatusBar } from "./status-bar";
 import { CommandMenu } from "./command-menu";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { useKeyboard, useRenderer } from "@opentui/react";
 import { useCommandMenu } from "./command-menu/use-command-menu";
 import type { Command } from "./command-menu/types";
@@ -10,8 +10,31 @@ import { useKeyboardLayer } from "./providers/keyboard-layer";
 import { useDialog } from "./providers/dialog";
 import { useTheme } from "./providers/theme";
 import { useNavigate } from "react-router";
+import { isAbsolute, relative, resolve, join } from "path"
 import { Mode } from '@heycode/database/enums'
 import { usePromptConfig } from "./providers/prompt-config";
+import { readdir } from "fs/promises";
+import { ca, vi } from "zod/locales";
+
+const MAX_VISIBLE_MENTIONS = 8
+const CURRENT_DIRECTORY = process.cwd()
+const MAX_FALLBACK_MENTION_CANDIDATES = 32
+const MENTION_QUERY_CHARACTER = /[A-Za-z0-9._/-]/
+const RECURSIVE_MENTION_IGNORED_DIRECTORIES = new Set(["node_modules"])
+
+type MentionMatch = {
+    start: number
+    end: number
+    query: string
+}
+
+type MentionCandidate = {
+    path: string
+    kind: "file" | "directory"
+
+}
+
+
 type Props = {
     onSubmit: (text: string) => void;
     disabled?: boolean;
@@ -24,6 +47,235 @@ export const TEXTAREA_KEY_BINDINGS: KeyBinding[] = [
     { name: "return", action: "submit" },
     { name: "enter", action: "submit" },
 ]
+function isWithinCurrentDirectory(targetPath: string) {
+    const relativePath = relative(CURRENT_DIRECTORY, targetPath)
+
+    return relativePath === "" || (!relativePath.startsWith("..") && !isAbsolute(relativePath))
+}
+
+function isMentionQueryCharacter(character: string) {
+    return MENTION_QUERY_CHARACTER.test(character)
+}
+
+
+function findActiveMention(text: string, cursorOffset: number): MentionMatch | null {
+    const safeOffset = Math.max(0, Math.min(cursorOffset, text.length))
+
+    let start = safeOffset
+
+    while (start > 0 && !/\s/.test(text[start - 1]!)) {
+        start -= 1
+    }
+
+    let end = safeOffset
+    while (end < text.length && !/\s/.test(text[end]!)) {
+        end += 1
+    }
+
+    const token = text.slice(start, end)
+    const relativeCursor = safeOffset - start
+    const mentionStart = token.lastIndexOf("@", relativeCursor)
+
+
+    if (mentionStart === -1)
+        return null
+
+    const previousCharacter = token[mentionStart - 1]
+
+    if (previousCharacter && isMentionQueryCharacter(previousCharacter)) {
+        return null
+    }
+
+    let mentionEnd = mentionStart + 1
+
+    while (mentionEnd < token.length && isMentionQueryCharacter(token[mentionEnd]!)) {
+        mentionEnd += 1
+    }
+
+    if (relativeCursor < mentionStart || relativeCursor > mentionEnd) {
+        return null
+    }
+
+
+    return {
+        start: start + mentionStart,
+        end: start + relativeCursor,
+        query: token.slice(mentionStart + 1, mentionEnd)
+    }
+}
+
+async function getMentionCandidates(query: string): Promise<MentionCandidate[]> {
+    const normalizedQuery = query.startsWith("./") ? query.slice(2) : query
+
+    if (normalizedQuery.startsWith("/")) {
+        return []
+    }
+
+    const hasTrailingSlash = normalizedQuery.endsWith("/")
+
+    const lastSlashIndex = hasTrailingSlash ? normalizedQuery.length - 1 : normalizedQuery.lastIndexOf("/")
+
+    const directoryPart = hasTrailingSlash ? normalizedQuery.slice(0, -1) : lastSlashIndex == -1 ? "" : normalizedQuery.slice(0, lastSlashIndex)
+
+    const namePrefix = hasTrailingSlash
+        ? "" : lastSlashIndex == -1 ? normalizedQuery : normalizedQuery.slice(lastSlashIndex + 1)
+
+    const absoluteDirectory = resolve(CURRENT_DIRECTORY, directoryPart || ".")
+
+    if (!isWithinCurrentDirectory(absoluteDirectory)) {
+        return []
+    }
+
+    try {
+        const entries = await readdir(absoluteDirectory, { withFileTypes: true })
+        const lowercasePrefix = namePrefix.toLowerCase()
+
+        const showHiddenEntries = namePrefix.startsWith(".")
+
+        const directMatches = entries
+            .filter((entry) => showHiddenEntries || !entry.name.startsWith("."))
+            .filter((entry) => lowercasePrefix === "" || entry.name.toLowerCase().startsWith(lowercasePrefix))
+            .sort((left, right) => {
+                if (left.isDirectory() !== right.isDirectory()) {
+                    return left.isDirectory() ? -1 : 1
+                }
+
+                return left.name.localeCompare(right.name)
+            })
+            .map((entry) => {
+                const relativePath = directoryPart ? `${directoryPart}/${entry.name}` : entry.name
+                const kind: MentionCandidate["kind"] = entry.isDirectory() ? "directory" : "file"
+                return {
+                    path: relativePath,
+                    kind,
+                }
+            })
+
+        if (directMatches.length > 0 || directoryPart !== "" || namePrefix === "")
+            return directMatches
+
+
+        // example -hello.ts but not in the path resolved by mention directly maybe
+        const fallbackMatches: MentionCandidate[] = []
+
+        const visit = async (absoluteDirectory: string, directoryPath: string): Promise<void> => {
+
+            const entries = await readdir(absoluteDirectory, {
+                withFileTypes: true
+            })
+
+            for (const entry of entries) {
+
+                if (!showHiddenEntries && entry.name.startsWith(".")) {
+                    continue
+                }
+
+                if (entry.isDirectory() && RECURSIVE_MENTION_IGNORED_DIRECTORIES.has(entry.name)) {
+                    continue
+                }
+
+                const path = directoryPath ? `${directoryPath}/${entry.name}` : entry.name
+                const kind: MentionCandidate["kind"] = entry.isDirectory() ? "directory" : "file"
+
+                if (entry.name.toLowerCase().startsWith(lowercasePrefix)) {
+                    fallbackMatches.push({
+                        path,
+                        kind
+                    })
+
+                    if (fallbackMatches.length >= MAX_FALLBACK_MENTION_CANDIDATES)
+                        return
+                }
+
+                if (entry.isDirectory()) {
+                    await visit(resolve(absoluteDirectory, entry.name), path)
+                    if (fallbackMatches.length >= MAX_FALLBACK_MENTION_CANDIDATES)
+                        return
+                }
+
+
+            }
+
+        }
+
+        await visit(CURRENT_DIRECTORY, "")
+
+        return fallbackMatches.sort((left, right) => {
+            if (left.kind === "directory" && right.kind !== "directory") {
+                return -1
+            }
+            if (left.kind !== "directory" && right.kind === "directory") {
+                return 1
+            }
+            return left.path.localeCompare(right.path)
+        })
+
+
+    } catch {
+        return []
+    }
+}
+
+type FileMentionMenuProps = {
+    candidates: MentionCandidate[];
+    selectedIndex: number;
+    scrollRef: RefObject<ScrollBoxRenderable | null>;
+    onSelect: (index: number) => void;
+    onExecute: (index: number) => void
+}
+
+function FileMentionMenu({
+    candidates,
+    selectedIndex,
+    scrollRef,
+    onSelect,
+    onExecute
+}: FileMentionMenuProps) {
+    const { colors } = useTheme()
+    const visibleHeight = Math.min(candidates.length, MAX_VISIBLE_MENTIONS)
+
+    if (candidates.length === 0) {
+        return (
+            <box paddingX={1}>
+                <text attributes={TextAttributes.DIM}>No matching files or folders</text>
+            </box>
+        )
+    }
+
+    return (
+        <scrollbox ref={scrollRef} height={visibleHeight}>
+            {
+                candidates.map((candidate, index) => {
+                    const isSelected = index === selectedIndex;
+                    return (
+                        <box
+                            key={index}
+                            paddingX={1}
+                            flexDirection="row"
+                            height={1}
+                            backgroundColor={isSelected ? colors.selection : undefined}
+                            onMouseMove={() => onSelect(index)}
+                            onMouseDown={() => onExecute(index)}
+                        >
+                            <box flexGrow={1} flexShrink={1} overflow="hidden" >
+                                <text selectable={false} fg={isSelected ? "black" : "white"}>
+                                    {candidate.path}
+                                </text>
+                            </box>
+
+                            <box >
+                                <text selectable={false} fg={isSelected ? "black" : "white"} >
+                                    {candidate.kind === "directory" ? " Folder" : " File"}
+                                </text>
+                            </box>
+                        </box>
+                    )
+                })
+            }
+        </scrollbox>
+    )
+
+}
 
 
 export function InputBar({ onSubmit, disabled }: Props) {
@@ -31,11 +283,17 @@ export function InputBar({ onSubmit, disabled }: Props) {
     const onSubmitRef = useRef<() => void>(() => { });
     const renderer = useRenderer();
     const toast = useToast()
-    const { isTopLayer, setResponder } = useKeyboardLayer()
+    const { isTopLayer, setResponder, push, pop } = useKeyboardLayer()
     const dialog = useDialog()
     const { colors } = useTheme()
-    const navigate= useNavigate()
-    const {mode,setMode,setModel,toggleMode}=usePromptConfig()
+    const navigate = useNavigate()
+    const { mode, setMode, setModel, toggleMode } = usePromptConfig()
+    const activeMentionRef = useRef<MentionMatch | null>(null)
+    const menuScrollRef = useRef<ScrollBoxRenderable | null>(null)
+
+    const [activeMention, setActiveMention] = useState<MentionMatch | null>(null)
+    const [mentionCandidates, setMentionCandidates] = useState<MentionCandidate[]>([]);
+    const [mentionSelectedIndex, setMentionSelectedIndex] = useState<number>(0)
 
 
 
@@ -50,6 +308,79 @@ export function InputBar({ onSubmit, disabled }: Props) {
         setSelectedIndex,
     } = useCommandMenu();
 
+    const showMentionMenu = activeMention !== null
+
+    const closeMentionMenu = useCallback(() => {
+        activeMentionRef.current = null
+        setActiveMention(null)
+        setMentionCandidates([])
+        pop("mention")
+    }, [pop])
+
+
+    const syncMentionMenu = useCallback((text: string, cursorOffset: number) => {
+        const nextMention = findActiveMention(text, cursorOffset)
+        const previousMention = activeMentionRef.current
+
+        const mentionChanged =
+            previousMention?.start !== nextMention?.start ||
+            previousMention?.end !== nextMention?.end ||
+            previousMention?.query !== nextMention?.query
+
+        if (!nextMention) {
+            if (previousMention) {
+                closeMentionMenu()
+            }
+            return
+        }
+
+            activeMentionRef.current = nextMention
+            setActiveMention(nextMention)
+
+
+                push("mention", () => {
+                    closeMentionMenu()
+                    return true
+                });
+
+            if (mentionChanged) {
+                setMentionSelectedIndex(0)
+                menuScrollRef.current?.scrollTo(0)
+            }
+
+    }, [closeMentionMenu, push])
+
+
+    
+
+
+    const handleMentionExecute=useCallback((index:number)=>{
+        const textarea= textareaRef.current
+        const mention = activeMentionRef.current
+
+        const candidate= mentionCandidates[index]
+
+        if(!textarea || !mention || !candidate)
+            return
+
+        const insertion = candidate.kind==="directory" ? candidate.path :`${candidate.path} `
+
+        const newText= `${textarea.plainText.slice(0,mention.start)}@${insertion}${textarea.plainText.slice(mention.end)}`
+
+        textarea.replaceText(newText)
+        textarea.cursorOffset=mention.start+insertion.length+1
+        syncMentionMenu(newText,textarea.cursorOffset)
+        
+        
+    },[mentionCandidates,syncMentionMenu])
+
+
+    const handleTextareaCursorChange=useCallback(()=>{
+        const textarea=textareaRef.current
+        if(!textarea)
+            return
+        syncMentionMenu(textarea.plainText,textarea.cursorOffset)
+    },[])
 
 
 
@@ -57,8 +388,10 @@ export function InputBar({ onSubmit, disabled }: Props) {
         const textarea = textareaRef.current;
         if (!textarea)
             return
-        handleContentChange(textarea.plainText);
-    }, [handleContentChange])
+        const text=textarea.plainText
+        handleContentChange(text);
+        syncMentionMenu(text,textarea.cursorOffset)
+    }, [handleContentChange,syncMentionMenu])
 
     const handleSubmit = useCallback(() => {
         if (disabled)
@@ -93,13 +426,13 @@ export function InputBar({ onSubmit, disabled }: Props) {
                 navigate,
                 mode,
                 setMode,
-                setModel,                
+                setModel,
             })
         }
         else {
             textarea.insertText(command.value + " ");
         }
-    }, [renderer, toast, dialog,navigate])
+    }, [renderer, toast, dialog, navigate])
 
 
     useEffect(() => {
@@ -124,6 +457,15 @@ export function InputBar({ onSubmit, disabled }: Props) {
             return
         }
 
+        if(showMentionMenu){
+            const candidate= mentionCandidates[mentionSelectedIndex]
+            if(candidate){
+                handleMentionExecute(mentionSelectedIndex)
+                return
+            }
+            return
+        }
+
         handleSubmit()
 
     }
@@ -134,12 +476,12 @@ export function InputBar({ onSubmit, disabled }: Props) {
     }, [handleCommand, resolveCommand])
 
 
-    useKeyboard((key)=>{
-        if(disabled)
+    useKeyboard((key) => {
+        if (disabled)
             return
-        if(!isTopLayer("base"))
+        if (!isTopLayer("base"))
             return
-        if(key.name=='tab'){
+        if (key.name == 'tab') {
             key.preventDefault()
             toggleMode()
         }
@@ -164,11 +506,90 @@ export function InputBar({ onSubmit, disabled }: Props) {
     }, [disabled, setResponder])
 
 
+    useKeyboard((key)=>{
+        if(disabled)
+            return
+        if(!showMentionMenu || !isTopLayer("mention"))
+            return
+
+        if(key.name === 'escape'){
+            key.preventDefault()
+            closeMentionMenu()
+        
+        }
+
+        else if (key.name=="up"){
+            key.preventDefault()
+            setMentionSelectedIndex((currentIndex)=>{
+                const nextIndex=Math.max(0,currentIndex-1)
+                const scrollBox= menuScrollRef.current
+
+                if(scrollBox && nextIndex <scrollBox.scrollTop ) {
+                    scrollBox.scrollTo(nextIndex)
+                }
+                return nextIndex
+            })
+        }
+
+        else if (key.name=="down"){
+            key.preventDefault()
+            setMentionSelectedIndex((currentIndex)=>{
+                if(mentionCandidates.length==0)
+                    return 0
+                const nextIndex=Math.min(mentionCandidates.length-1,currentIndex+1)
+                const scrollBox= menuScrollRef.current
+
+                if(scrollBox){
+                    const viewportHeight=scrollBox.viewport.height
+                    const visibleEnd= scrollBox.scrollTop+viewportHeight
+                    
+                    if(nextIndex >=visibleEnd){
+                        scrollBox.scrollTo(nextIndex - viewportHeight+1)
+                    }
+                }
+                return nextIndex
+            })
+        }
+    })
+
+    useEffect(()=>{
+        if(!activeMention){
+            setMentionCandidates([])
+            return
+        }
+
+        let ignore=false
+
+        const loadCandidates=async()=>{
+            const nextCandidates= await getMentionCandidates(activeMention.query)
+            if(ignore)
+                return
+            setMentionCandidates(nextCandidates)
+            
+            setMentionSelectedIndex((currentIndex)=>{
+                if(nextCandidates.length ===0)
+                    return 0
+                return Math.min(currentIndex, nextCandidates.length-1)
+                
+            })
+            
+        }
+
+        loadCandidates()
+
+        return()=>{
+            ignore=true
+        }
+
+        
+    },[activeMention])
+
+
     return (
         <box width="100%" alignItems="center">
             <box
                 border={['left']}
-                borderColor={mode===Mode.BUILD ? colors.primary :colors.planMode}
+                borderColor={mode === Mode.BUILD ? colors.primary : colors.planMode}
                 width="100%"
             >
                 <box position="relative"
@@ -200,13 +621,34 @@ export function InputBar({ onSubmit, disabled }: Props) {
                             </box>
                         )
                     }
+                    {
+                        !showCommandMenu && showMentionMenu &&(
+                            <box
+                            position="absolute"
+                                bottom="100%"
+                                left="0%"
+                                width="100%"
+                                backgroundColor={colors.surface}
+                                zIndex={10}
+                            >
+                              <FileMentionMenu
+                              candidates={mentionCandidates}
+                              selectedIndex={mentionSelectedIndex}
+                              onSelect={setMentionSelectedIndex}
+                              onExecute={handleMentionExecute}
+                              scrollRef={menuScrollRef}
+                              />
+                                
+                            </box>
+                        )
+                    }
                     <textarea
                         ref={textareaRef}
                         onContentChange={handleTextareaContentChange}
                         keyBindings={TEXTAREA_KEY_BINDINGS}
                         focused={
                             !disabled &&
-                            (isTopLayer("base") || isTopLayer("command"))
+                            (isTopLayer("base") || isTopLayer("command") || isTopLayer("mention"))
                         }
                         placeholder={`Ask anything... "Fix a bug in the database`}
                     />
