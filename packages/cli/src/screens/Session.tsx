@@ -9,11 +9,12 @@ import { BotMessage } from "../components/messages/bot-message"
 import { useEffect, useMemo, useState } from "react"
 import { useToast } from "../components/providers/toast"
 import prettyMs from "pretty-ms"
-import { useChat, type Message } from "../hooks/useChat"
-import { DEFAULT_CHAT_MODEL_ID, type SupportedChatModelId } from "@heycode/shared"
+import { useChat, type ClientMesagePart, type Message } from "../hooks/useChat"
+import { DEFAULT_CHAT_MODEL_ID, messagePartsSchema, type SupportedChatModelId } from "@heycode/shared"
 import { MessageStatus } from "@heycode/database/enums"
 import { useKeyboardLayer } from "../components/providers/keyboard-layer"
 import { useKeyboard } from "@opentui/react"
+import { usePromptConfig } from "../components/providers/prompt-config"
 
 type SessionData = InferResponseType<typeof apiClient.sessions[":id"]["$get"], 200>
 
@@ -40,18 +41,22 @@ function mapDbMessages(dbMessages:SessionData['messages']):Message[]{
             model:m.model as SupportedChatModelId
         }
     }else{
+        const parsedParts= m.parts ===null? null: messagePartsSchema.safeParse(m.parts)
+        
+        const parts:ClientMesagePart[] =parsedParts?.success 
+        ?parsedParts.data.map((p)=>
+            p.type==='tool-call' ? {...p,status:"done" as const}:p
+        ):[]
+
+
+
         return {
             id:m.id,
             role:'assistant',
             content:m.content,
             mode:m.mode,
             model:m.model as SupportedChatModelId,
-            parts:[
-                {
-                    type:'text',
-                    text:m.content
-                }
-            ],
+            parts,
            ...(m.duration ? { duration: prettyMs(m.duration) } : {}),
            interrupted: m.status === MessageStatus.INTERRUPTED
         }
@@ -62,7 +67,7 @@ function mapDbMessages(dbMessages:SessionData['messages']):Message[]{
 
 function ChatMessage({ msg }: { msg: Message }): React.ReactNode {
     if (msg.role === "user") {
-        return <UserMessage message={msg.content}></UserMessage>
+        return <UserMessage message={msg.content} mode={msg.mode}  />
     }
     if (msg.role === "error") {
         return <ErrorMessage message={msg.content}></ErrorMessage>
@@ -83,7 +88,7 @@ function SessionChat({session}: {session: SessionData}){
     const [initialMessages,setInitialMessages]= useState<Message[]>(mapDbMessages(session.messages))
     const {messages,streaming,submit,abort,interrupt}=useChat(session.id,initialMessages)
     const {isTopLayer}= useKeyboardLayer()
-
+    const {mode,model}=usePromptConfig()
 
     useEffect(()=>{
         return ()=>{
@@ -101,8 +106,8 @@ function SessionChat({session}: {session: SessionData}){
     return (
         <SessionShell onSubmit={(text)=> submit({
             userText:text,
-            mode:'BUILD',
-            model:DEFAULT_CHAT_MODEL_ID,
+            mode:mode,
+            model:model,
         })
          }
         loading={streaming.status==="streaming"}

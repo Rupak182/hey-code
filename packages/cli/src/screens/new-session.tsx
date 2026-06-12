@@ -3,15 +3,17 @@ import { useTheme } from "../components/providers/theme"
 import { useEffect, useMemo, useRef } from "react"
 import { SessionShell } from "../components/session-shell"
 import { UserMessage } from "../components/messages/user-message"
-import {z} from "zod"
+import { z } from "zod"
 import { useToast } from "../components/providers/toast"
 import { apiClient } from "../lib/api-client"
 import { DEFAULT_CHAT_MODEL_ID } from "@heycode/shared"
 import { getErrorMessage } from "../lib/http-errors"
+import { Mode } from '@heycode/database/enums'
 
-
-const newSessionStateSchema= z.object({
-    message:z.string()
+const newSessionStateSchema = z.object({
+    message: z.string(),
+    mode: z.enum(Mode),
+    model: z.string(),
 })
 
 
@@ -21,15 +23,15 @@ export function NewSession() {
     const location = useLocation()
     const { colors } = useTheme()
     const toast = useToast()
-    const hasStartedRef= useRef(false)
+    const hasStartedRef = useRef(false)
 
-    const state = useMemo(()=>{
-        const parsed= newSessionStateSchema.safeParse(location.state)
-        if(!parsed.success){
+    const state = useMemo(() => {
+        const parsed = newSessionStateSchema.safeParse(location.state)
+        if (!parsed.success) {
             return null
         }
         return parsed.data
-    },[location.state])
+    }, [location.state])
 
 
     useEffect(() => {
@@ -39,55 +41,55 @@ export function NewSession() {
     }, [navigate, state])
 
 
-    useEffect(()=>{
-        if(!state || hasStartedRef.current){
+    useEffect(() => {
+        if (!state || hasStartedRef.current) {
             return
         }
-        hasStartedRef.current=true
+        hasStartedRef.current = true
 
-        let ignore =false
+        let ignore = false
 
-        const createSession = async()=>{
-            try{
-                const res= await apiClient.sessions.$post({
-                    json:{
-                        title:state.message.slice(0,100),
-                        cwd:process.cwd(),
-                        initialMessage:{
-                            role:'USER',
-                            content:state.message,
-                            mode:'BUILD',
-                            model:DEFAULT_CHAT_MODEL_ID,
+        const createSession = async () => {
+            try {
+                const res = await apiClient.sessions.$post({
+                    json: {
+                        title: state.message.slice(0, 100),
+                        cwd: process.cwd(),
+                        initialMessage: {
+                            role: 'USER',
+                            content: state.message,
+                            mode: state.mode,
+                            model: state.model,
                         }
                     }
                 })
 
-                if(ignore)
+                if (ignore)
                     return
 
-                if(!res.ok){
+                if (!res.ok) {
                     throw new Error(await getErrorMessage(res))
                 }
 
-                const session =await res.json()
-                navigate(`/sessions/${session.id}`, { replace: true,state:{session} })
-                
+                const session = await res.json()
+                navigate(`/sessions/${session.id}`, { replace: true, state: { session } })
+
             }
-            catch(error){
-                if(ignore)
+            catch (error) {
+                if (ignore)
                     return
 
                 toast.show({
-                    variant:"error",   
-                    message:error instanceof Error?error.message : "Failed to create session",
+                    variant: "error",
+                    message: error instanceof Error ? error.message : "Failed to create session",
                 }
                 )
-                navigate("/",{replace:true})
+                navigate("/", { replace: true })
             }
         }
         createSession()
-        return(()=>{
-            ignore=true
+        return (() => {
+            ignore = true
         })
     })
 
@@ -97,7 +99,7 @@ export function NewSession() {
 
     return (
         <SessionShell onSubmit={() => { }} inputDisabled loading >
-            <UserMessage message={state.message} />
+            <UserMessage message={state.message} mode={state.mode} />
         </SessionShell>
     )
 }
