@@ -19,6 +19,7 @@
         "@heycode/database": "workspace:*",
         "@heycode/shared": "workspace:*",
         "@hono/zod-validator": "^0.8.0",
+        "@polar-sh/sdk": "^0.48.1",
         "@types/bun": "^1.3.14",
         "ai": "^6.0.199",
         "hono": "^4.12.25",
