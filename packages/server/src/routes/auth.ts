@@ -9,6 +9,21 @@ const app= new Hono().get("/callback",(c)=>{
     const errorDescription= c.req.query("error_description")
 
     if(error){
+        if (state) {
+            try {
+                const [encoded] = state.split(".")
+                if (encoded) {
+                    const payload = JSON.parse(Buffer.from(encoded, "base64url").toString())
+                    const port = payload.port
+                    if (port && typeof port === "number") {
+                        const redirectUrl = `http://localhost:${port}/callback?error=${encodeURIComponent(error)}&error_description=${encodeURIComponent(errorDescription ?? '')}`
+                        return c.redirect(redirectUrl)
+                    }
+                }
+            } catch {
+                // fall through to default error response if parsing state fails
+            }
+        }
         return c.text(errorDescription?? error,400)
     }
 
