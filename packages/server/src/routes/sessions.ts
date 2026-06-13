@@ -5,7 +5,7 @@ import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { db } from "@heycode/database/client"
 import { Role, Mode, MessageStatus } from "@heycode/database/enums"
-
+import type { AuthenticatedEnv } from "../middleware/require-auth"
 
 const createSessionSchema = z.object({
     title: z.string(),
@@ -29,9 +29,13 @@ const createSessionValidator = zValidator(
     }
 )
 
-const app = new Hono()
+const app = new Hono<AuthenticatedEnv>()
     .get("/", async (c) => {
+        const userId= c.get("userId")
         const sessions = await db.session.findMany({
+            where:{
+                userId
+            },
             orderBy: {
                 createdAt: "desc"
             },
@@ -56,7 +60,8 @@ const app = new Hono()
 
         const session = await db.session.findUnique({
             where: {
-                id
+                id,
+                userId: c.get("userId")
             },
             include: {
                 messages: {
@@ -79,11 +84,12 @@ const app = new Hono()
         // await new Promise((resolve)=>setTimeout(resolve,10000))
 
         const { initialMessage, ...data } = c.req.valid("json")
+        const userId= c.get("userId")
 
         const session = await db.session.create({
             data: {
                 ...data,
-                userId: "mock_user",
+                userId,
                 ...(initialMessage && {
                     messages: {
                         create: {

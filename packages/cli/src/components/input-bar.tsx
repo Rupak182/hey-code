@@ -151,7 +151,7 @@ async function getMentionCandidates(query: string): Promise<MentionCandidate[]> 
                 }
             })
 
-        if (directMatches.length > 0 || directoryPart !== "" || namePrefix === "")
+        if (directMatches.length > 0 || directoryPart !== "" || namePrefix === "" )
             return directMatches
 
 
@@ -574,11 +574,14 @@ export function InputBar({ onSubmit, disabled }: Props) {
             })
             
         }
+        const handle =setTimeout(()=>{
+            void loadCandidates()
+        },150)
 
-        loadCandidates()
 
         return()=>{
             ignore=true
+            clearTimeout(handle)
         }
 
         
