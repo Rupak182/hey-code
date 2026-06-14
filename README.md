@@ -2,6 +2,13 @@
 
 HeyCode is an interactive, AI-powered coding assistant designed to help developers build and edit codebases directly from their command line. Running entirely within your terminal, HeyCode pairs a premium Terminal User Interface (TUI) with a robust backend agent that can analyze context (PLAN mode) and apply file edits or execute terminal command workflows (BUILD mode) using Google Gemini models.
 
+
+<img width="1634" height="874" alt="image" src="https://github.com/user-attachments/assets/0a630efd-a936-494a-812b-a623422db0f4" />
+
+---
+
+<img width="1878" height="947" alt="image" src="https://github.com/user-attachments/assets/1c158e0b-fc70-4d8a-9266-75c525b9ed31" />
+
 ---
 
 ## 🏗️ Architecture & Monorepo Structure
