@@ -1,14 +1,13 @@
+import { findSupportedChatModel } from "@heycode/shared"
 import { zValidator } from "@hono/zod-validator"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { db } from "@heycode/database/client"
 import type { AuthenticatedEnv } from "../middleware/require-auth"
-import { requireCreditsBalance } from "../middleware/require-credits-balance"
 
 const createSessionSchema = z.object({
     title: z.string(),
-  
 })
 
 const createSessionValidator = zValidator(
@@ -65,7 +64,7 @@ const app = new Hono<AuthenticatedEnv>()
 
         return c.json(session)
     })
-    .post("/", requireCreditsBalance, createSessionValidator, async (c) => {
+    .post("/", createSessionValidator, async (c) => {
         // await new Promise((resolve)=>setTimeout(resolve,10000))
 
         const userId= c.get("userId")

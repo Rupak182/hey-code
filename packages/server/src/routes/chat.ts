@@ -5,13 +5,10 @@ import { isSupportedChatModel, resolveChatModel } from "../lib/models";
 import { zValidator } from "@hono/zod-validator";
 import type { AuthenticatedEnv } from "../middleware/require-auth";
 import { Hono } from "hono";
-import { requireCreditsBalance } from "../middleware/require-credits-balance";
 import { db } from "@heycode/database/client";
-import { validateUIMessages, convertToModelMessages, streamText } from "ai"
+import { validateUIMessages, convertToModelMessages, streamText } from "ai";
 import { buildSystemPrompt } from "../system-prompt";
 import type { Prisma } from "@heycode/database";
-import { calculateCreditsForUsage } from "../lib/credits";
-import { ingestAiUsage } from "../lib/polar";
 
 type ChatMessageMetadata = {
     mode?: Mode,
@@ -21,7 +18,6 @@ type ChatMessageMetadata = {
 }
 
 type HeyCodeUIMessage = UIMessage<ChatMessageMetadata, never, InferUITools<ToolContracts>>
-
 
 const submitSchema = z.object({
     id: z.string(),
@@ -51,11 +47,10 @@ const submitValidator = zValidator('json', submitSchema, (result, c) => {
 });
 
 
-const app= new Hono<AuthenticatedEnv>()
-    .post("/", requireCreditsBalance, submitValidator, async (c) => {
+const app = new Hono<AuthenticatedEnv>()
+    .post("/", submitValidator, async (c) => {
 
         const userId = c.get("userId")
-
 
         const { id, messages, mode, model } = c.req.valid("json");
 
@@ -85,9 +80,9 @@ const app= new Hono<AuthenticatedEnv>()
             const incomingMessage = {
                 ...message,
                 metadata: {
-                    mode,   // default fallback for new messages
-                    model,  // default fallback for new messages
-                    ...message.metadata  // existing metadata wins
+                    mode,
+                    model,
+                    ...message.metadata
                 }
             } satisfies HeyCodeUIMessage
 
@@ -96,16 +91,14 @@ const app= new Hono<AuthenticatedEnv>()
             if (existingMessageIndex === -1) {
                 mergedMessages.push(incomingMessage)
             } else {
-                mergedMessages[existingMessageIndex] = incomingMessage // client version might be different due to update
+                mergedMessages[existingMessageIndex] = incomingMessage
             }
-
         }
 
         const nextMessages = await validateUIMessages<HeyCodeUIMessage>({
             messages: mergedMessages,
             tools
         })
-
 
         const modelMessages = await convertToModelMessages(nextMessages, { tools })
 
@@ -154,40 +147,12 @@ const app= new Hono<AuthenticatedEnv>()
                         messages: event.messages as unknown as Prisma.InputJsonValue
                     }
                 })
-
-                if (!completedUsage)
-                    return 
-
-
-                try {
-                    const billableUsage = calculateCreditsForUsage({
-                        provider: resolvedModel.provider,
-                        model: resolvedModel.modelId,
-                        usage: completedUsage
-                    })
-
-                    await ingestAiUsage({
-                        externalCustomerId: userId,
-                        eventId: `chat-message:${event.responseMessage.id}`,
-                        credits: billableUsage.credits,
-                    })
-                }
-                catch (error) {
-                    console.error("Failed to ingest usage for chat message", {
-                        error,
-                        sessionId: id,
-                        messageId: event.responseMessage.id,
-                        userId
-                    })
-                }
-
             },
 
             onError(error) {
                 return error instanceof Error ? error.message : String(error)
             }
-        }
-        )
+        })
 
     })
 
