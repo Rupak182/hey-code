@@ -1,6 +1,6 @@
 import "opentui-spinner/react"
 import { useTheme } from "./providers/theme"
-import {Mode} from "@heycode/database/enums"
+import  { Mode } from "@heycode/shared"
 
 
 type Props={

@@ -1,12 +1,11 @@
-import {Mode } from "@heycode/database/enums"
+import  { Mode } from "../../shared/src/schemas"
 
 
 type SystemPromptParams={
-    cwd:string|null
     mode:Mode
 }
 
-export function buildSystemPrompt({cwd,mode}:SystemPromptParams):string{
+export function buildSystemPrompt({mode}:SystemPromptParams):string{
     const parts:string[]=[]
 
     parts.push(`You are an expert software engineer working as an coding assistant inside a terminal application.
@@ -16,10 +15,7 @@ export function buildSystemPrompt({cwd,mode}:SystemPromptParams):string{
         
         `)
 
-        if(cwd){
-            parts.push(`\n The user's project directory is :${cwd}`)
-        }
-
+      
         if(mode===Mode.PLAN){
             parts.push(`
                 ## Mode: PLAN
@@ -40,7 +36,7 @@ export function buildSystemPrompt({cwd,mode}:SystemPromptParams):string{
                 `)
         }
 
-        if(cwd && mode===Mode.PLAN){
+        if(mode===Mode.PLAN){
             parts.push(`
                 ## Tool Usage
                 You have these tools available:
@@ -60,7 +56,7 @@ export function buildSystemPrompt({cwd,mode}:SystemPromptParams):string{
             
         }
 
-        if(cwd && mode === Mode.BUILD){
+        if( mode === Mode.BUILD){
             parts.push(`
                 ## Tool Usage
 

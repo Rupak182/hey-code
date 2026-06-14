@@ -1,49 +1,62 @@
 import { Text, TextAttributes } from "@opentui/core"
 import { useTheme } from "../providers/theme"
-import type { ClientMesagePart, ClientToolCallPart } from "../../hooks/useChat"
-import { Mode } from "@heycode/database/enums"
+import { Mode } from "@heycode/shared"
+import type { Message } from "../../hooks/useChat"
+import prettyMs from "pretty-ms"
+
+type ClientMesagePart = Message["parts"][number]
+type ClientToolCallPart = Extract<ClientMesagePart, { type: `tool-${string}` | 'dynamic-tool' }>
 
 
 type Props = {
     parts: ClientMesagePart[]
     model: string,
     mode: Mode,
-    duration?: string
+    durationMs?: number
     streaming?: boolean,
-    interrupted?: boolean
+}
+
+function formatToolName(name: string): string {
+    return name.replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+        .replace(/^./, (c) => c.toUpperCase())
+}
+
+
+function isToolPart(part: ClientMesagePart): part is ClientToolCallPart {
+    return part.type.startsWith("tool-") || part.type === "dynamic-tool"
+}
+
+function formatToolArgs(tc: ClientToolCallPart): string {
+    if (!("input" in tc) || tc.input === null)
+        return ""
+    if (typeof tc.input !== 'object')
+        return String(tc.input)
+
+    return Object.values(tc.input).map(String).join(" ")
 
 }
 
-function formatToolName(name:string):string{
-    return name.replace(/([a-z0-9])([A-Z])/g,'$1 $2')
-    .replace(/^./,(c)=>c.toUpperCase())
+type PartGroup = {
+    type: ClientMesagePart['type']
+    parts: ClientMesagePart[],
+    key: string
 }
 
-function formatToolArgs(tc:ClientToolCallPart):string{
-    return Object.values(tc.args).map(String).join(" ")
-}
+function groupConsecutiveParts(parts: ClientMesagePart[]): PartGroup[] {
+    const groups: PartGroup[] = []
+    const filteredParts = parts.filter(part => part.type !== 'step-start')
 
-type PartGroup={
-    type:ClientMesagePart['type']
-    parts:ClientMesagePart[],
-    key:string
-}
+    for (let i = 0; i < filteredParts.length; i++) {
+        const part = filteredParts[i]!
+        const lastGroup = groups[groups.length - 1]
 
-function groupConsecutiveParts(parts:ClientMesagePart[]):PartGroup[]{
-    const groups:PartGroup[]=[]
-    
-
-    for(let i=0; i<parts.length;i++){
-        const part=parts[i]!
-        const lastGroup=groups[groups.length-1]
-        
-        if(lastGroup && lastGroup.type===part.type){
+        if (lastGroup && lastGroup.type === part.type) {
             lastGroup.parts.push(part)
-        }else{
-            const key= part.type==='tool-call'? `group-tc-${part.id}`:`group-${part.type}-${i}`
+        } else {
+            const key = isToolPart(part) ? `group-tc-${part.toolCallId}` : `group-${part.type}-${i}`
             groups.push({
-                type:part.type,
-                parts:[part],
+                type: part.type,
+                parts: [part],
                 key
             })
         }
@@ -52,19 +65,19 @@ function groupConsecutiveParts(parts:ClientMesagePart[]):PartGroup[]{
     return groups
 }
 
-export function BotMessage({ parts, model, mode, duration, streaming = false, interrupted = false }: Props) {
+export function BotMessage({ parts, model, mode, durationMs, streaming = false }: Props) {
     const { colors } = useTheme()
 
     return (
         <box width="100%" alignItems="center">
             {
-                groupConsecutiveParts(parts).map((group) => (
-                    <box key={group.key} paddingY={1} width="100%">
+                groupConsecutiveParts(parts).map((group, i) => (
+                    <box key={group.key} width="100%" paddingTop={i == 0 ? 0 : 1}>
                         {
-                            group.parts.map((part, i) => {
+                            group.parts.map((part, j) => {
                                 if (part.type === "reasoning") {
                                     return (
-                                        <box key={`reasoning-${i}`}
+                                        <box key={`reasoning-${j}`}
                                             border={["left"]}
                                             borderColor={colors.thinkingBorder}
                                             width="100%"
@@ -78,19 +91,21 @@ export function BotMessage({ parts, model, mode, duration, streaming = false, in
                                     )
                                 }
 
-                                if (part.type === "tool-call") {
+                                if (isToolPart(part)) {
+                                    const toolName = part.type === "dynamic-tool" ? part.toolName : part.type.slice("tool-".length)
                                     return (
                                         <box
-                                            key={part.id}
+                                            key={part.toolCallId}
                                             border={["left"]}
                                             borderColor={colors.thinkingBorder}
                                             width="100%"
                                             paddingX={2}
                                         >
                                             <text attributes={TextAttributes.DIM}>
-                                                <em fg={colors.info}>{formatToolName(part.name)}</em>
+                                                <em fg={colors.info}>{formatToolName(toolName)} </em>
                                                 {formatToolArgs(part)}
-                                                {part.status === "calling" ? "..." : ""}
+                                                {part.state !== "output-available" && part.state !== "output-error" ? "..." : ""}
+                                                {part.state === "output-error" ? `${part.errorText}` : ""}
                                             </text>
                                         </box>
                                     )
@@ -98,7 +113,7 @@ export function BotMessage({ parts, model, mode, duration, streaming = false, in
 
                                 if (part.type === 'text') {
                                     return (
-                                        <box key={`text-${i}`} paddingX={3} width="100%">
+                                        <box key={`text-${j}`} paddingX={3} width="100%">
                                             <text>{part.text}</text>
                                         </box>
                                     )
@@ -111,19 +126,18 @@ export function BotMessage({ parts, model, mode, duration, streaming = false, in
                 ))
             }
 
-            <box paddingX={3} paddingBottom={1} gap={1} width="100%">
+            <box paddingX={3} paddingY={1} gap={1} width="100%">
                 <box flexDirection="row" gap={2}>
-                    <text attributes={interrupted ? TextAttributes.DIM : 0} fg={interrupted ? undefined : mode === Mode.PLAN ? colors.planMode : colors.primary}>•</text>
-                    <text fg={mode === Mode.PLAN ? colors.planMode : colors.primary}></text>
+                    <text fg={mode === Mode.PLAN ? colors.planMode : colors.primary}>●</text>
                     <box flexDirection="row" gap={1}>
-                        <text attributes={interrupted ? TextAttributes.DIM : 0}>{mode === Mode.PLAN ? `Plan` : `Build`}</text>
+                        <text>{mode === Mode.PLAN ? `Plan` : `Build`}</text>
                         <text attributes={TextAttributes.DIM} fg={colors.dimSeperator}>&gt;</text>
                         <text attributes={TextAttributes.DIM}>{model}</text>
                         {
-                            (duration || interrupted) && (
+                            (durationMs != null) && (
                                 <>
                                     <text attributes={TextAttributes.DIM} fg={colors.dimSeperator}>&gt;</text>
-                                    <text attributes={TextAttributes.DIM}>{interrupted ? "interrupted" : duration}</text>
+                                    <text attributes={TextAttributes.DIM}>{prettyMs(durationMs)}</text>
                                 </>
                             )
                         }

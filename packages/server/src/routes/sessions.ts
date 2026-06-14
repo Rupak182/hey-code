@@ -3,22 +3,13 @@ import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { db } from "@heycode/database/client"
-import { Role, Mode, MessageStatus } from "@heycode/database/enums"
 import type { AuthenticatedEnv } from "../middleware/require-auth"
-import { isSupportedChatModel } from "../lib/models"
 import { requireCreditsBalance } from "../middleware/require-credits-balance"
 
 const createSessionSchema = z.object({
     title: z.string(),
-    cwd: z.string().optional(),
-    initialMessage: z.object({
-        role: z.enum(Role),
-        content: z.string(),
-        mode: z.enum(Mode),
-        model: z.string().refine(isSupportedChatModel)
-    }).optional()
+  
 })
-
 
 const createSessionValidator = zValidator(
     "json", createSessionSchema, (result, c) => {
@@ -63,13 +54,6 @@ const app = new Hono<AuthenticatedEnv>()
             where: {
                 id,
                 userId: c.get("userId")
-            },
-            include: {
-                messages: {
-                    orderBy: {
-                        createdAt: "asc"
-                    }
-                }
             }
         })
 
@@ -84,24 +68,13 @@ const app = new Hono<AuthenticatedEnv>()
     .post("/", requireCreditsBalance, createSessionValidator, async (c) => {
         // await new Promise((resolve)=>setTimeout(resolve,10000))
 
-        const { initialMessage, ...data } = c.req.valid("json")
         const userId= c.get("userId")
+        const data= c.req.valid("json")
 
         const session = await db.session.create({
-            data: {
+            data:{
                 ...data,
                 userId,
-                ...(initialMessage && {
-                    messages: {
-                        create: {
-                            ...initialMessage,
-                            status: MessageStatus.COMPLETE
-                        }
-                    }
-                })
-            },
-            include: {
-                messages: true
             }
         })
 

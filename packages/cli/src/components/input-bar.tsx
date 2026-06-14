@@ -11,10 +11,9 @@ import { useDialog } from "./providers/dialog";
 import { useTheme } from "./providers/theme";
 import { useNavigate } from "react-router";
 import { isAbsolute, relative, resolve, join } from "path"
-import { Mode } from '@heycode/database/enums'
 import { usePromptConfig } from "./providers/prompt-config";
 import { readdir } from "fs/promises";
-import { ca, vi } from "zod/locales";
+import { Mode } from "@heycode/shared";
 
 const MAX_VISIBLE_MENTIONS = 8
 const CURRENT_DIRECTORY = process.cwd()

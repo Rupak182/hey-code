@@ -1,7 +1,7 @@
 import { TextAttributes } from '@opentui/core'
 import { useTheme } from './providers/theme';
 import { usePromptConfig } from './providers/prompt-config';
-import { Mode } from '@heycode/database/enums';
+import { Mode } from '@heycode/shared';
 
 export  function StatusBar() {
   const {colors}=useTheme()

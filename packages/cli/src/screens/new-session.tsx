@@ -6,9 +6,8 @@ import { UserMessage } from "../components/messages/user-message"
 import { z } from "zod"
 import { useToast } from "../components/providers/toast"
 import { apiClient } from "../lib/api-client"
-import { DEFAULT_CHAT_MODEL_ID } from "@heycode/shared"
+import { DEFAULT_CHAT_MODEL_ID, Mode } from "@heycode/shared"
 import { getErrorMessage } from "../lib/http-errors"
-import { Mode } from '@heycode/database/enums'
 
 const newSessionStateSchema = z.object({
     message: z.string(),
@@ -53,14 +52,7 @@ export function NewSession() {
             try {
                 const res = await apiClient.sessions.$post({
                     json: {
-                        title: state.message.slice(0, 100),
-                        cwd: process.cwd(),
-                        initialMessage: {
-                            role: 'USER',
-                            content: state.message,
-                            mode: state.mode,
-                            model: state.model,
-                        }
+                        title: state.message.slice(0, 100)
                     }
                 })
 
@@ -72,7 +64,7 @@ export function NewSession() {
                 }
 
                 const session = await res.json()
-                navigate(`/sessions/${session.id}`, { replace: true, state: { session } })
+                navigate(`/sessions/${session.id}`, { replace: true, state: { session, initialPrompt: state } })
 
             }
             catch (error) {

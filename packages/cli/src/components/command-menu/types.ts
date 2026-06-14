@@ -1,7 +1,6 @@
-import type { Mode } from "@heycode/database/enums"
 import type { DialogContextValue } from "../providers/dialog"
 import type { ToastContextValue } from "../providers/toast"
-import type { SupportedChatModelId } from "@heycode/shared"
+import type { Mode, SupportedChatModelId } from "@heycode/shared"
 
 export type CommandContext={
     exit:()=>void,

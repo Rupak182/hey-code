@@ -1,5 +1,4 @@
-import  { Mode } from "@heycode/database/enums"
-import { DEFAULT_CHAT_MODEL_ID, type SupportedChatModelId } from "@heycode/shared"
+import { DEFAULT_CHAT_MODEL_ID, Mode, type SupportedChatModelId } from "@heycode/shared"
 import { createContext, useCallback, useContext, useState, type ReactNode } from "react"
 
 type PromptConfigContextValue={
