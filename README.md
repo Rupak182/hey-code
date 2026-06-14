@@ -63,7 +63,7 @@ Before starting, ensure you have:
     ```
     Ensure the following keys in `.env` are configured:
     - `API_URL` (defaults to `http://localhost:3000`)
-    - `DATABASE_URL` (PostgreSQL Connection String)
+    - `DATABASE_URL` (NeonDB PostgreSQL Connection String)
     - `GOOGLE_GENERATIVE_AI_API_KEY` (Gemini API Key)
     - Clerk OAuth credentials (`CLERK_OAUTH_CLIENT_ID`, `CLERK_OAUTH_CLIENT_SECRET`, etc.)
 
