@@ -14,7 +14,7 @@ RUN cd /temp/dev && bun install --frozen-lockfile --ignore-scripts
 
 # Step 2: Copy dependencies and all workspace source code
 FROM base AS prerelease
-COPY --from=install /temp/dev/node_modules node_modules
+COPY --from=install /temp/dev/ /usr/src/app/
 COPY . .
 
 # Generate Prisma Client (requires database schema copied in Step 2)
