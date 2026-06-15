@@ -19,6 +19,7 @@ COPY . .
 
 # Generate Prisma Client (requires database schema copied in Step 2)
 WORKDIR /usr/src/app/packages/database
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 RUN bunx prisma generate
 
 # Step 3: Minimal production release stage using the built-in non-root 'bun' user
