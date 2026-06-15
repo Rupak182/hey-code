@@ -1,4 +1,4 @@
-FROM oven/bun:1.1 AS base
+FROM oven/bun:1.3 AS base
 WORKDIR /usr/src/app
 
 # Step 1: Install dependencies into a temp directory to leverage caching
