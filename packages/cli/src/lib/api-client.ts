@@ -2,7 +2,7 @@ import {hc} from "hono/client"
 import type { Apptype } from "@heycode/server"
 import { clearAuth, getAuth } from "./auth"
 
-export const apiClient= hc<Apptype>(process.env.API_BASE_URL?? "http://localhost:3000/", {
+export const apiClient= hc<Apptype>(process.env.API_BASE_URL ?? process.env.API_URL ?? "http://localhost:3000/", {
     fetch: async(input:Parameters<typeof fetch>[0] ,init?: Parameters<typeof fetch>[1]) => {
         const headers= new Headers(init?.headers)
         const auth = getAuth()
