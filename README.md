@@ -110,3 +110,4 @@ Inside the HeyCode TUI, type `/` to open the command menu. Supported commands in
 
 ---
 
+This implementation is based on learning from [NightCode](https://github.com/code-with-antonio/nightcode).
