@@ -13,6 +13,8 @@ import { DEFAULT_CHAT_MODEL_ID, Mode, type SupportedChatModelId } from "@heycode
 import { useKeyboardLayer } from "../components/providers/keyboard-layer"
 import { useKeyboard } from "@opentui/react"
 import { usePromptConfig } from "../components/providers/prompt-config"
+import { PermissionPrompt } from "../components/permission-prompt"
+
 
 type SessionData = InferResponseType<typeof apiClient.sessions[":id"]["$get"], 200>
 
@@ -50,7 +52,7 @@ function ChatMessage({ msg }: { msg: Message }): React.ReactNode {
 
 function SessionChat({ session, initialPrompt }: { session: SessionData, initialPrompt?: { message: string, mode: Mode, model: SupportedChatModelId } }) {
     const [initialMessages, setInitialMessages] = useState<Message[]>((session.messages as unknown as Message[]))
-    const { messages, status, submit, abort, interrupt, error } = useChat(session.id, initialMessages)
+    const { messages, status, submit, abort, interrupt, error, pendingApproval } = useChat(session.id, initialMessages)
     const { isTopLayer } = useKeyboardLayer()
     const { mode, model } = usePromptConfig()
 
@@ -87,8 +89,9 @@ function SessionChat({ session, initialPrompt }: { session: SessionData, initial
             model: model,
         })
         }
-            loading={status === "streaming"}
+            loading={status === "streaming" && !pendingApproval}
             interruptable={status === "streaming"}
+            inputDisabled={pendingApproval !== null}
         >
             {
                 messages.map(msg => (
@@ -98,6 +101,18 @@ function SessionChat({ session, initialPrompt }: { session: SessionData, initial
             {
                 error && <ErrorMessage message={error.message} />
 
+            }
+            {
+                pendingApproval && (
+                    <PermissionPrompt
+                        toolName={pendingApproval.toolName}
+                        description={pendingApproval.description}
+                        command={pendingApproval.command}
+                        onResolve={(action) => {
+                            pendingApproval.resolve(action)
+                        }}
+                    />
+                )
             }
 
         </SessionShell>

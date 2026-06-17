@@ -81,8 +81,8 @@ const app = new Hono<AuthenticatedEnv>()
                 ...message,
                 metadata: {
                     mode,
-                    model,
-                    ...message.metadata
+                    model,  // not needed maybe
+                    ...message.metadata 
                 }
             } satisfies HeyCodeUIMessage
 
@@ -96,7 +96,7 @@ const app = new Hono<AuthenticatedEnv>()
         }
 
         const nextMessages = await validateUIMessages<HeyCodeUIMessage>({
-            messages: mergedMessages,
+            messages: mergedMessages.filter((msg) => msg.parts && msg.parts.length > 0),
             tools
         })
 
@@ -114,17 +114,17 @@ const app = new Hono<AuthenticatedEnv>()
             } : undefined,
             onFinish: async ({ usage }) => {
                 completedUsage = usage
-            }
+            }  //  model response finished
         })
 
         return result.toUIMessageStreamResponse<HeyCodeUIMessage>({
             originalMessages: nextMessages,
             messageMetadata({ part }) {
                 if (part.type === 'start')
-                    return { mode, model }
+                    return { mode, model }  // metadata for assistant message
 
                 if (part.type !== 'finish')
-                    return undefined
+                    return undefined   // after streamText onFinish
 
                 return {
                     mode,
@@ -133,8 +133,8 @@ const app = new Hono<AuthenticatedEnv>()
                     ...(completedUsage ? { usage: completedUsage } : {})
                 }
             },
-            async onFinish(event) {
-                if (event.isAborted)
+            async onFinish(event) { //after everything sent to client
+                if (event.isAborted) 
                     return
                 if (hasPendingToolCalls(event.responseMessage))
                     return

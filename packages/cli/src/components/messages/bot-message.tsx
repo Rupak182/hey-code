@@ -105,7 +105,7 @@ export function BotMessage({ parts, model, mode, durationMs, streaming = false }
                                                 <em fg={colors.info}>{formatToolName(toolName)} </em>
                                                 {formatToolArgs(part)}
                                                 {part.state !== "output-available" && part.state !== "output-error" ? "..." : ""}
-                                                {part.state === "output-error" ? `${part.errorText}` : ""}
+                                                {part.state === "output-error" ? ` (Error: ${part.errorText})` : ""}
                                             </text>
                                         </box>
                                     )
