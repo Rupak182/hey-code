@@ -16,7 +16,9 @@ export type ChatMessageMetadata = {
     mode?: Mode,
     model?: SupportedChatModelId | string
     durationMs?: number,
-    usage?: LanguageModelUsage
+    usage?: LanguageModelUsage,
+    compacted?: boolean,
+    systemRestoration?: boolean
 }
 
 type ChatTools = {

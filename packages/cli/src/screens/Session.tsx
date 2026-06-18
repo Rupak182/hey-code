@@ -31,6 +31,9 @@ const sessionLocationSchema = z.object({
 
 
 function ChatMessage({ msg }: { msg: Message }): React.ReactNode {
+    if (msg.metadata?.systemRestoration) {
+        return null
+    }
 
     const text = msg.parts.filter((p) => p.type === "text").map((p) => p.text).join("")
 

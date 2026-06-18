@@ -6,15 +6,18 @@ import { zValidator } from "@hono/zod-validator";
 import type { AuthenticatedEnv } from "../middleware/require-auth";
 import { Hono } from "hono";
 import { db } from "@heycode/database/client";
-import { validateUIMessages, convertToModelMessages, streamText } from "ai";
+import { validateUIMessages, convertToModelMessages, streamText, generateId } from "ai";
 import { buildSystemPrompt } from "../system-prompt";
 import type { Prisma } from "@heycode/database";
+import { shouldCompress, compressHistory } from "../lib/compaction";
 
 type ChatMessageMetadata = {
     mode?: Mode,
     model?: string,
     durationMs?: number,
     usage?: LanguageModelUsage,
+    compacted?: boolean,
+    systemRestoration?: boolean,
 }
 
 type HeyCodeUIMessage = UIMessage<ChatMessageMetadata, never, InferUITools<ToolContracts>>
@@ -74,7 +77,70 @@ const app = new Hono<AuthenticatedEnv>()
             ? (session.messages as unknown as HeyCodeUIMessage[])
             : []
 
-        const mergedMessages = [...previousMessages]
+        let finalPreviousMessages = [...previousMessages]
+
+        if (shouldCompress(finalPreviousMessages)) {
+            try {
+                const summary = await compressHistory(finalPreviousMessages, resolvedModel)
+                if (summary) {
+                    const summaryMessageId = generateId()
+                    const continuationContent = `# Context Restoration (Previous Session Compacted)
+
+The previous conversation was compacted due to context length limits. Below is a detailed summary of the work done so far. 
+
+**CRITICAL: Actions listed under "COMPLETED ACTIONS" are already done. DO NOT repeat them.**
+
+---
+
+${summary}
+
+---
+
+Resume work from where we left off. Focus ONLY on the remaining tasks.`
+
+                    // Flag all existing messages in the DB history as compacted
+                    const updatedPrevious = finalPreviousMessages.map(msg => ({
+                        ...msg,
+                        metadata: {
+                            ...msg.metadata,
+                            compacted: true
+                        }
+                    }))
+
+                    const summaryMessage: HeyCodeUIMessage = {
+                        id: summaryMessageId,
+                        role: 'user',
+                        parts: [
+                            {
+                                type: 'text',
+                                text: continuationContent
+                            }
+                        ],
+                        metadata: {
+                            mode,
+                            model,
+                            systemRestoration: true
+                        }
+                    }
+
+                    finalPreviousMessages = [...updatedPrevious, summaryMessage]
+
+                    await db.session.update({
+                        where: {
+                            id: id,
+                            userId
+                        },
+                        data: {
+                            messages: finalPreviousMessages as unknown as Prisma.InputJsonValue
+                        }
+                    })
+                }
+            } catch (err) {
+                console.error("Compaction failed:", err)
+            }
+        }
+
+        const mergedMessages = [...finalPreviousMessages]
 
         for (const message of messages) {
             const incomingMessage = {
@@ -91,7 +157,17 @@ const app = new Hono<AuthenticatedEnv>()
             if (existingMessageIndex === -1) {
                 mergedMessages.push(incomingMessage)
             } else {
-                mergedMessages[existingMessageIndex] = incomingMessage
+                const existing = mergedMessages[existingMessageIndex]
+                if (existing) {
+                    mergedMessages[existingMessageIndex] = {
+                        ...incomingMessage,
+                        metadata: {
+                            ...existing.metadata,
+                            ...incomingMessage.metadata,
+                            compacted: existing.metadata?.compacted // Preserve database's compacted flag
+                        }
+                    }
+                }
             }
         }
 
@@ -100,7 +176,9 @@ const app = new Hono<AuthenticatedEnv>()
             tools
         })
 
-        const modelMessages = await convertToModelMessages(nextMessages, { tools })
+        // Filter out compacted messages so the LLM doesn't see them
+        const activeMessages = nextMessages.filter(msg => !msg.metadata?.compacted)
+        const modelMessages = await convertToModelMessages(activeMessages, { tools })
 
         let completedUsage: LanguageModelUsage | null = null
 
@@ -119,6 +197,7 @@ const app = new Hono<AuthenticatedEnv>()
 
         return result.toUIMessageStreamResponse<HeyCodeUIMessage>({
             originalMessages: nextMessages,
+            generateMessageId: () => generateId(),
             messageMetadata({ part }) {
                 if (part.type === 'start')
                     return { mode, model }  // metadata for assistant message
