@@ -9,7 +9,7 @@ import { db } from "@heycode/database/client";
 import { validateUIMessages, convertToModelMessages, streamText, generateId } from "ai";
 import { buildSystemPrompt } from "../system-prompt";
 import type { Prisma } from "@heycode/database";
-import { shouldCompress, compressHistory } from "../lib/compaction";
+import { shouldCompress, compressHistory, performCompaction } from "../lib/compaction";
 
 type ChatMessageMetadata = {
     mode?: Mode,
@@ -81,50 +81,9 @@ const app = new Hono<AuthenticatedEnv>()
 
         if (shouldCompress(finalPreviousMessages)) {
             try {
-                const summary = await compressHistory(finalPreviousMessages, resolvedModel)
-                if (summary) {
-                    const summaryMessageId = generateId()
-                    const continuationContent = `# Context Restoration (Previous Session Compacted)
-
-The previous conversation was compacted due to context length limits. Below is a detailed summary of the work done so far. 
-
-**CRITICAL: Actions listed under "COMPLETED ACTIONS" are already done. DO NOT repeat them.**
-
----
-
-${summary}
-
----
-
-Resume work from where we left off. Focus ONLY on the remaining tasks.`
-
-                    // Flag all existing messages in the DB history as compacted
-                    const updatedPrevious = finalPreviousMessages.map(msg => ({
-                        ...msg,
-                        metadata: {
-                            ...msg.metadata,
-                            compacted: true
-                        }
-                    }))
-
-                    const summaryMessage: HeyCodeUIMessage = {
-                        id: summaryMessageId,
-                        role: 'user',
-                        parts: [
-                            {
-                                type: 'text',
-                                text: continuationContent
-                            }
-                        ],
-                        metadata: {
-                            mode,
-                            model,
-                            systemRestoration: true
-                        }
-                    }
-
-                    finalPreviousMessages = [...updatedPrevious, summaryMessage]
-
+                const compactedList = await performCompaction(finalPreviousMessages, resolvedModel, mode, model)
+                if (compactedList) {
+                    finalPreviousMessages = compactedList 
                     await db.session.update({
                         where: {
                             id: id,

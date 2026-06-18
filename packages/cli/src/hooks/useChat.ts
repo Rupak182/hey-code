@@ -193,6 +193,7 @@ export function useChat(sessionId: string, initialMessages: Message[]) {
 
     return {
         messages: chat.messages,  // updated on streaming
+        setMessages: chat.setMessages,
         status: chat.status,
         error: chat.error,
         submit,

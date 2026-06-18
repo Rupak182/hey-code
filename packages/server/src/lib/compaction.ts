@@ -1,5 +1,5 @@
 import type { LanguageModelUsage, UIMessage } from "ai";
-import { generateText } from "ai";
+import { generateText, generateId } from "ai";
 import type { ResolvedModel } from "./models";
 import type { Mode, ToolContracts } from "@heycode/shared";
 import type { InferUITools } from "ai";
@@ -10,6 +10,7 @@ export type ChatMessageMetadata = {
     durationMs?: number;
     usage?: LanguageModelUsage;
     compacted?: boolean;
+    systemRestoration?: boolean;
 };
 
 export type HeyCodeUIMessage = UIMessage<ChatMessageMetadata, never, InferUITools<ToolContracts>>;
@@ -171,4 +172,57 @@ export async function compressHistory(
     });
 
     return text;
+}
+
+export async function performCompaction(
+    messages: HeyCodeUIMessage[],
+    resolvedModel: ResolvedModel,
+    mode: Mode,
+    modelId: string
+): Promise<HeyCodeUIMessage[] | null> {
+    const summary = await compressHistory(messages, resolvedModel)
+    if (!summary) {
+        return null
+    }
+
+    const continuationContent = `# Context Restoration (Previous Session Compacted)
+
+The previous conversation was compacted (either automatically due to context limits or manually by the user). Below is a detailed summary of the work done so far. 
+
+**CRITICAL: Actions listed under "COMPLETED ACTIONS" are already done. DO NOT repeat them.**
+
+---
+
+${summary}
+
+---
+
+Resume work from where we left off. Focus ONLY on the remaining tasks.`
+
+    // Flag all existing messages in the history as compacted
+    const updatedPrevious = messages.map(msg => ({
+        ...msg,
+        metadata: {
+            ...msg.metadata,
+            compacted: true
+        }
+    }))
+
+    const summaryMessage: HeyCodeUIMessage = {
+        id: generateId(),
+        role: 'user',
+        parts: [
+            {
+                type: 'text',
+                text: continuationContent
+            }
+        ],
+        metadata: {
+            mode,
+            model: modelId,
+            systemRestoration: true
+        }
+    }
+
+    return [...updatedPrevious, summaryMessage]
 }

@@ -3,6 +3,7 @@ import { AgentsDialogContent, ModelsDialogContent, SessionsDialogContent, ThemeD
 import type { Command, CommandContext } from "./types";
 import { performLogin } from "../../lib/oauth";
 import { clearAuth } from "../../lib/auth";
+import { handleCompaction } from "../../lib/compaction";
 
 
 export const COMMANDS: Command[] = [
@@ -110,6 +111,13 @@ export const COMMANDS: Command[] = [
         action:(ctx)=>{
             ctx.toast.show({message:"Feature Disabled For Now"})
         }
+    },
+    
+    {
+        name: "compact",
+        description: "Manually compact conversation history",
+        value: "/compact",
+        action: handleCompaction
     },
     
     {

@@ -5,15 +5,19 @@ import { Spinner } from "./spinner"
 import { usePromptConfig } from "./providers/prompt-config"
 
 
+import type { Message } from "../hooks/useChat"
+
 type Props = {
     children?: ReactNode
     onSubmit: (text: string) => void
     inputDisabled?: boolean
     loading?: boolean,
-    interruptable?:boolean
+    interruptable?:boolean,
+    sessionId?: string,
+    setMessages?: (messages: Message[]) => void
 }
 
-export function SessionShell({ children, onSubmit, inputDisabled = false, loading = false ,interruptable=false}: Props) {
+export function SessionShell({ children, onSubmit, inputDisabled = false, loading = false ,interruptable=false, sessionId, setMessages}: Props) {
     // const scrollRef = useRef<ScrollBoxRenderable>(null)
 
     // useEffect(() => {
@@ -44,6 +48,8 @@ export function SessionShell({ children, onSubmit, inputDisabled = false, loadin
                 <InputBar
                     onSubmit={onSubmit}
                     disabled={inputDisabled}
+                    sessionId={sessionId}
+                    setMessages={setMessages}
                 />
             </box>
             <box

@@ -1,10 +1,14 @@
-import { findSupportedChatModel } from "@heycode/shared"
+import { findSupportedChatModel, DEFAULT_CHAT_MODEL_ID, Mode } from "@heycode/shared"
 import { zValidator } from "@hono/zod-validator"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { db } from "@heycode/database/client"
 import type { AuthenticatedEnv } from "../middleware/require-auth"
+import { generateId } from "ai"
+import { resolveChatModel } from "../lib/models"
+import { performCompaction, type HeyCodeUIMessage } from "../lib/compaction"
+import type { Prisma } from "@heycode/database"
 
 const createSessionSchema = z.object({
     title: z.string(),
@@ -12,6 +16,21 @@ const createSessionSchema = z.object({
 
 const createSessionValidator = zValidator(
     "json", createSessionSchema, (result, c) => {
+        if (!result.success) {
+            return c.json({
+                error: "invalid request body"
+            }, 400)
+        }
+    }
+)
+
+const compactSessionValidator = zValidator(
+    "json",
+    z.object({
+        modelId: z.string(),
+        mode: z.enum(Mode)
+    }),
+    (result, c) => {
         if (!result.success) {
             return c.json({
                 error: "invalid request body"
@@ -78,6 +97,63 @@ const app = new Hono<AuthenticatedEnv>()
         })
 
         return c.json(session, 201)
+    })
+    .post("/:id/compact", compactSessionValidator, async (c) => {
+        const id = c.req.param("id")
+        const userId = c.get("userId")
+        const body = c.req.valid("json")
+
+        const session = await db.session.findUnique({
+            where: {
+                id,
+                userId
+            }
+        })
+
+        if (!session) {
+            return c.json({
+                message: "Session not found"
+            }, 404)
+        }
+
+        const previousMessages = Array.isArray(session.messages)
+            ? (session.messages as unknown as HeyCodeUIMessage[])
+            : []
+
+        if (previousMessages.length === 0) {
+            return c.json({
+                message: "No messages to compact"
+            }, 400)
+        }
+
+        try {
+            const { modelId, mode } = body
+            const resolvedModel = resolveChatModel(modelId)
+
+            const newMessagesList = await performCompaction(previousMessages, resolvedModel, mode, modelId)
+            if (!newMessagesList) {
+                return c.json({
+                    message: "History did not produce a summary"
+                }, 400)
+            }
+
+            await db.session.update({
+                where: {
+                    id: id,
+                    userId
+                },
+                data: {
+                    messages: newMessagesList as unknown as Prisma.InputJsonValue
+                }
+            })
+
+            return c.json(newMessagesList)
+        } catch (err) {
+            console.error("Manual compaction failed:", err)
+            return c.json({
+                message: err instanceof Error ? err.message : "Compaction failed"
+            }, 500)
+        }
     })
 
 export default app

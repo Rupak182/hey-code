@@ -67,7 +67,7 @@ function ChatMessage({ msg }: { msg: Message }): React.ReactNode {
 
 function SessionChat({ session, initialPrompt }: { session: SessionData, initialPrompt?: { message: string, mode: Mode, model: SupportedChatModelId } }) {
     const [initialMessages, setInitialMessages] = useState<Message[]>((session.messages as unknown as Message[]))
-    const { messages, status, submit, abort, interrupt, error, pendingApproval } = useChat(session.id, initialMessages)
+    const { messages, setMessages, status, submit, abort, interrupt, error, pendingApproval } = useChat(session.id, initialMessages)
     const { isTopLayer } = useKeyboardLayer()
     const { mode, model } = usePromptConfig()
 
@@ -107,11 +107,13 @@ function SessionChat({ session, initialPrompt }: { session: SessionData, initial
             loading={status === "streaming" && !pendingApproval}
             interruptable={status === "streaming"}
             inputDisabled={pendingApproval !== null}
+            sessionId={session.id}
+            setMessages={setMessages}
         >
             {
                 messages.map(msg => (
                     <box key={msg.id} flexDirection="column">
-                        {msg.metadata?.systemRestoration && msg.role === "assistant" && (
+                        {msg.metadata?.systemRestoration && msg.role === "user" && (
                             <CompactionSeparator />
                         )}
                         <ChatMessage msg={msg} />

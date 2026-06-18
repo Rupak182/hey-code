@@ -34,9 +34,13 @@ type MentionCandidate = {
 }
 
 
+import type { Message } from "../hooks/useChat"
+
 type Props = {
     onSubmit: (text: string) => void;
     disabled?: boolean;
+    sessionId?: string;
+    setMessages?: (messages: Message[]) => void;
 }
 
 
@@ -277,7 +281,7 @@ function FileMentionMenu({
 }
 
 
-export function InputBar({ onSubmit, disabled }: Props) {
+export function InputBar({ onSubmit, disabled, sessionId, setMessages }: Props) {
     const textareaRef = useRef<TextareaRenderable>(null)
     const onSubmitRef = useRef<() => void>(() => { });
     const renderer = useRenderer();
@@ -286,7 +290,7 @@ export function InputBar({ onSubmit, disabled }: Props) {
     const dialog = useDialog()
     const { colors } = useTheme()
     const navigate = useNavigate()
-    const { mode, setMode, setModel, toggleMode } = usePromptConfig()
+    const { mode, model, setMode, setModel, toggleMode } = usePromptConfig()
     const activeMentionRef = useRef<MentionMatch | null>(null)
     const menuScrollRef = useRef<ScrollBoxRenderable | null>(null)
 
@@ -424,14 +428,17 @@ export function InputBar({ onSubmit, disabled }: Props) {
                 dialog,
                 navigate,
                 mode,
+                model,
                 setMode,
                 setModel,
+                sessionId,
+                setMessages,
             })
         }
         else {
             textarea.insertText(command.value + " ");
         }
-    }, [renderer, toast, dialog, navigate])
+    }, [renderer, toast, dialog, navigate, mode, model, setMode, setModel, sessionId, setMessages])
 
 
     useEffect(() => {
