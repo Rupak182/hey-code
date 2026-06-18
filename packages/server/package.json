@@ -13,6 +13,7 @@
     "dependencies": {
         "@ai-sdk/anthropic": "^3.0.82",
         "@ai-sdk/google": "^3.0.80",
+        "@ai-sdk/groq": "^3.0.42",
         "@ai-sdk/openai": "^3.0.69",
         "@ai-sdk/provider-utils": "^4.0.27",
         "@clerk/backend": "^3.7.0",

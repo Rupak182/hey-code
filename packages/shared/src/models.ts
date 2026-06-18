@@ -4,7 +4,7 @@ export type ModelPricing={
     outputUsdPerMillionTokens:number
 }
 
-export type SupportedProvider = "openai" | "anthropic" | "google"
+export type SupportedProvider = "openai" | "anthropic" | "google" | "groq"
 
 
 export type SupportedChatModelDefinition={
@@ -39,6 +39,38 @@ export const SUPPORTED_CHAT_MODELS=[
             outputUsdPerMillionTokens:0.40
         },
 
+    },
+    {
+        id:'openai/gpt-oss-120b',
+        provider:'groq',
+        pricing:{
+            inputUsdPerMillionTokens:0.15,
+            outputUsdPerMillionTokens:0.60
+        },
+    },
+    {
+        id:'openai/gpt-oss-20b',
+        provider:'groq',
+        pricing:{
+            inputUsdPerMillionTokens:0.075,
+            outputUsdPerMillionTokens:0.30
+        },
+    },
+    {
+        id:'qwen/qwen3-32b',
+        provider:'groq',
+        pricing:{
+            inputUsdPerMillionTokens:0.29,
+            outputUsdPerMillionTokens:0.59
+        },
+    },
+    {
+        id:'qwen/qwen3.6-27b',
+        provider:'groq',
+        pricing:{
+            inputUsdPerMillionTokens:0.60,
+            outputUsdPerMillionTokens:3.00
+        },
     }
     
 ] as const satisfies readonly SupportedChatModelDefinition[]
