@@ -14,7 +14,19 @@ import { useKeyboardLayer } from "../components/providers/keyboard-layer"
 import { useKeyboard } from "@opentui/react"
 import { usePromptConfig } from "../components/providers/prompt-config"
 import { PermissionPrompt } from "../components/permission-prompt"
+import { useTheme } from "../components/providers/theme"
+import { TextAttributes } from "@opentui/core"
 
+function CompactionSeparator() {
+    const { colors } = useTheme()
+
+    return (
+        <box width="100%" paddingY={1} paddingX={3} flexDirection="row" gap={1}>
+            <text fg={colors.selection}>■</text>
+            <text>Compaction Done...</text>
+        </box>
+    )
+}
 
 type SessionData = InferResponseType<typeof apiClient.sessions[":id"]["$get"], 200>
 
@@ -31,7 +43,7 @@ const sessionLocationSchema = z.object({
 
 
 function ChatMessage({ msg }: { msg: Message }): React.ReactNode {
-    if (msg.metadata?.systemRestoration) {
+    if (msg.metadata?.systemRestoration && msg.role === "user") {
         return null
     }
 
@@ -98,7 +110,12 @@ function SessionChat({ session, initialPrompt }: { session: SessionData, initial
         >
             {
                 messages.map(msg => (
-                    <ChatMessage key={msg.id} msg={msg} />
+                    <box key={msg.id} flexDirection="column">
+                        {msg.metadata?.systemRestoration && msg.role === "assistant" && (
+                            <CompactionSeparator />
+                        )}
+                        <ChatMessage msg={msg} />
+                    </box>
                 ))
             }
             {

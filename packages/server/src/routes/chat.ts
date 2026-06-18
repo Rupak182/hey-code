@@ -209,7 +209,8 @@ Resume work from where we left off. Focus ONLY on the remaining tasks.`
                     mode,
                     model,
                     durationMs: Date.now() - startTime,
-                    ...(completedUsage ? { usage: completedUsage } : {})
+                    ...(completedUsage ? { usage: completedUsage } : {}),
+                    systemRestoration: (finalPreviousMessages.length > previousMessages.length) ? true : undefined
                 }
             },
             async onFinish(event) { //after everything sent to client
