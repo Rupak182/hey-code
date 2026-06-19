@@ -15,6 +15,10 @@ export const toolInputSchemas={
     readFile:z.object({
         path:z.string().describe("Relative path to the file to read")
     }),
+    webSearch:z.object({
+        query:z.string().describe("Search query to search the web for"),
+        maxResults:z.number().int().min(1).max(10).default(5).describe("Maximum number of results to return (default: 5)")
+    }),
     listDirectory:z.object({
         path:z.string().default(".").describe("Relative path to the directory to list")
     }),
@@ -49,6 +53,10 @@ export const readOnlyToolContracts= {
     readFile:tool({
         description:'Read a file from the current project directory',
         inputSchema:toolInputSchemas.readFile
+    }),
+    webSearch:tool({
+        description:'Search the web for information. Returns search results with titles, URLs, and relevant snippets/highlights.',
+        inputSchema:toolInputSchemas.webSearch
     }),
     listDirectory:tool({
         description:'List entires in a directory under current project directory',

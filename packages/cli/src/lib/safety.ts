@@ -113,6 +113,10 @@ export function getToolDescription<T extends keyof ToolInputMap>(
     input: ToolInputMap[T]
 ): string {
     switch (toolName) {
+        case 'webSearch': {
+            const searchInput = input as ToolInputMap['webSearch'];
+            return `Search the web for: "${searchInput.query}"`;
+        }
         case 'bash': {
             const bashInput = input as ToolInputMap['bash'];
             return bashInput.description || `Execute bash command: ${bashInput.command}`;

@@ -1,4 +1,5 @@
 import { Mode, toolInputSchemas } from "@heycode/shared"
+import Exa from "exa-js"
 import { match } from "assert"
 import { mkdir, readdir, readFile, stat, writeFile } from "fs/promises"
 import { dirname, isAbsolute, join, relative, resolve } from "path"
@@ -26,7 +27,7 @@ function truncate(value: string, limit: number) {
 }
 
 export async function executeLocalTool(toolName: string, input: unknown, mode: Mode) {
-    if (mode == Mode.PLAN && !["readFile", "listDirectory", "glob", "grep"].includes(toolName)) {
+    if (mode == Mode.PLAN && !["readFile", "listDirectory", "glob", "grep", "webSearch"].includes(toolName)) {
         throw new Error(`Tool ${toolName} is not allowed in PLAN mode`)
     }
 
@@ -246,6 +247,44 @@ export async function executeLocalTool(toolName: string, input: unknown, mode: M
                 exitCode
             }
         }
+        case "webSearch": {
+            const { query, maxResults } = toolInputSchemas.webSearch.parse(input)
+            const apiKey = process.env.EXA_API_KEY
+
+            if (!apiKey) {
+                return "Error: EXA_API_KEY environment variable is not set. Please add it to your environment or .env file to enable web search."
+            }
+
+            try {
+                const exa = new Exa(apiKey)
+                const response = await exa.search(query, {
+                    numResults: maxResults,
+                    contents: {
+                        highlights: true,
+                        maxAgeHours: 48,
+                    }
+                })
+
+                if (!response.results || response.results.length === 0) {
+                    return `No results found for query: "${query}"`
+                }
+
+                const formattedLines = [`Results for query: "${query}"`, ""]
+                response.results.forEach((result, idx) => {
+                    formattedLines.push(`${idx + 1}. Title: ${result.title || "Untitled"}`)
+                    formattedLines.push(`   URL: ${result.url || "No URL"}`)
+                    if (result.highlights && result.highlights.length > 0) {
+                        formattedLines.push(`   Snippet: ${result.highlights.join(" ... ")}`)
+                    }
+                    formattedLines.push("")
+                })
+
+                return formattedLines.join("\n")
+            } catch (err) {
+                return `Error performing web search: ${err instanceof Error ? err.message : String(err)}`
+            }
+        }
+
         default:
             throw new Error(`Unknown tool: ${toolName}`)
 

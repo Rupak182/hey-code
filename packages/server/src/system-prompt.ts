@@ -44,6 +44,7 @@ export function buildSystemPrompt({mode}:SystemPromptParams):string{
                 - **listDirectory** - List directory contents
                 - **grep** - Search for patterns in files
                 - **glob** - Find files matching a pattern (e.g. "**/*.ts")
+                - **webSearch** - Search the web for programming questions, library APIs, and latest documentation (specifically useful for looking up new API features or troubleshooting error messages)
 
                 ## Rules:
                 1. **Be decisive ** Use glob/grep to find what's relevant , then read only those files.
@@ -68,6 +69,7 @@ export function buildSystemPrompt({mode}:SystemPromptParams):string{
                 - **listDirectory** - List directory contents
                 - **grep** - Search patterns
                 - **bash** - Run shell commands (tests, git, builds)
+                - **webSearch** - Search the web for programming questions, library APIs, and latest documentation (specifically useful for looking up new API features or troubleshooting error messages)
 
                 ## Rules:
                 1. **Think first:** Use grep/glob to find relevant files before reading.
