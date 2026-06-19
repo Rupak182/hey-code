@@ -12,7 +12,7 @@ const MAX_OUTPUT = 20_000
 const DEFAULT_TIMEOUT = 30_000
 
 function resolveInsideCwd(path: string) {
-    const cwd = process.cwd()
+    const cwd = process.env.HEYCODE_CWD || process.cwd()
     const resolved = resolve(cwd, path)
     const rel = relative(cwd, resolved)
 
@@ -69,7 +69,7 @@ export async function executeLocalTool(toolName: string, input: unknown, mode: M
             })
 
             return {
-                path: relative(process.cwd(), resolved) || ".",
+                path: relative(cwd, resolved) || ".",
                 entries: results,
             }
         }

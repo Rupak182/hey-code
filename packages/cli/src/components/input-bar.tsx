@@ -16,7 +16,7 @@ import { readdir } from "fs/promises";
 import { Mode } from "@heycode/shared";
 
 const MAX_VISIBLE_MENTIONS = 8
-const CURRENT_DIRECTORY = process.cwd()
+const CURRENT_DIRECTORY = process.env.HEYCODE_CWD || process.cwd()
 const MAX_FALLBACK_MENTION_CANDIDATES = 32
 const MENTION_QUERY_CHARACTER = /[A-Za-z0-9._/-]/
 const RECURSIVE_MENTION_IGNORED_DIRECTORIES = new Set(["node_modules"])

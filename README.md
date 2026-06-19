@@ -90,6 +90,23 @@ bun run dev:cli
 ```
 *This will open the interactive TUI interface in your terminal.*
 
+### 📂 Configuring the Workspace Directory (CWD)
+By default, the agent operates in the directory from which the CLI is launched. If you want the agent to operate on a different target codebase, you can set the workspace directory in one of three ways:
+
+1. **Via `.env` file:** Add the following line to your `.env` file:
+   ```env
+   HEYCODE_CWD=/path/to/your/target-project
+   ```
+2. **Via environment variable:** Prefix the CLI execution command:
+   ```bash
+   HEYCODE_CWD=/path/to/your/target-project bun run dev:cli
+   ```
+3. **By running from the target directory:** Navigate to the directory and run the CLI using its path:
+   ```bash
+   cd /path/to/your/target-project
+   bun run /path/to/heycode/packages/cli/src/index.tsx
+   ```
+
 ---
 
 ## 🛠️ CLI Commands
