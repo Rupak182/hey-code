@@ -26,10 +26,10 @@ HeyCode is organized as a monorepo containing the following packages:
 
 - **Interactive Terminal UI (TUI):** A rich, responsive UI built with React inside the terminal, enabling side-by-side chat streaming, session loading, status spinners, and command menus.
 - **Dual Agent Modes:**
-  - **`PLAN` Mode:** A safe, read-only analysis mode allowing the AI to query repository information using `readFile`, `listDirectory`, `glob`, and `grep`.
-  - **`BUILD` Mode:** An action-oriented execution mode where the AI can create and edit files (`writeFile`, `editFile`) and run terminal tasks (`bash`).
+  - **`PLAN` Mode:** A safe, read-only analysis mode allowing the AI to query repository information using `readFile`, `listDirectory`, `glob`, `grep`, and `webSearch`.
+  - **`BUILD` Mode:** An action-oriented execution mode where the AI can create and edit files (`writeFile`, `editFile`), run terminal tasks (`bash`), and perform web searches.
+- **Web Search Integration:** Powered by the official Exa SDK, allowing the agent to fetch highly relevant programming solutions, library APIs, and latest documentation snippets from the internet with optimized token usage (via semantic highlights) and cache-priority execution.
 - **Google Gemini Integration:** Designed to work with Google Gemini reasoning/thinking models (e.g. `gemini-2.5-flash`, `gemini-3.5-flash`, `gemini-2.5-flash-lite`).
-- **OAuth Authentication:** CLI-to-browser authentication powered by Clerk.
 
 ---
 
@@ -41,7 +41,6 @@ Before starting, ensure you have:
 *   [Bun](https://bun.sh/) (version 1.0 or higher)
 *   A PostgreSQL database (such as a free [Neon](https://neon.tech/) database)
 *   Google Gemini API Key
-*   Clerk Developer account keys (for OAuth/auth)
 
 ### Setup & Installation
 
@@ -65,7 +64,7 @@ Before starting, ensure you have:
     - `API_URL` (defaults to `http://localhost:3000`)
     - `DATABASE_URL` (NeonDB PostgreSQL Connection String)
     - `GOOGLE_GENERATIVE_AI_API_KEY` (Gemini API Key)
-    - Clerk OAuth credentials (`CLERK_OAUTH_CLIENT_ID`, `CLERK_OAUTH_CLIENT_SECRET`, etc.)
+    - `EXA_API_KEY` (Exa AI search API key for web search capabilities)
 
 4.  **Generate Database Client:**
     Initialize the database ORM client:
@@ -104,8 +103,6 @@ Inside the HeyCode TUI, type `/` to open the command menu. Supported commands in
 | `/models` | Select between supported Gemini models |
 | `/sessions`| Browse and restore past conversation sessions |
 | `/theme` | Change the TUI color theme |
-| `/login` | Authenticate using your web browser |
-| `/logout` | Log out from your current account |
 | `/exit` | Quit the TUI application |
 
 ---
