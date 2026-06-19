@@ -18,7 +18,8 @@ export type ChatMessageMetadata = {
     durationMs?: number,
     usage?: LanguageModelUsage,
     compacted?: boolean,
-    systemRestoration?: boolean
+    systemRestoration?: boolean,
+    compactionSummaryId?: string
 }
 
 type ChatTools = {

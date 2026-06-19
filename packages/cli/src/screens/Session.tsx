@@ -113,7 +113,7 @@ function SessionChat({ session, initialPrompt }: { session: SessionData, initial
             {
                 messages.map(msg => (
                     <box key={msg.id} flexDirection="column">
-                        {msg.metadata?.systemRestoration && msg.role === "user" && (
+                        {((msg.metadata?.systemRestoration && msg.role === "user") || msg.metadata?.compactionSummaryId) && (
                             <CompactionSeparator />
                         )}
                         <ChatMessage msg={msg} />

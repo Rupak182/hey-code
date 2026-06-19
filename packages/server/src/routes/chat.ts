@@ -18,6 +18,7 @@ type ChatMessageMetadata = {
     usage?: LanguageModelUsage,
     compacted?: boolean,
     systemRestoration?: boolean,
+    compactionSummaryId?: string
 }
 
 type HeyCodeUIMessage = UIMessage<ChatMessageMetadata, never, InferUITools<ToolContracts>>
@@ -78,12 +79,21 @@ const app = new Hono<AuthenticatedEnv>()
             : []
 
         let finalPreviousMessages = [...previousMessages]
+        let compactionOccurred = false
+        let summaryMessageId = ''
 
-        if (shouldCompress(finalPreviousMessages)) {
+        const shouldComp = shouldCompress(finalPreviousMessages);
+
+        if (shouldComp) {
             try {
                 const compactedList = await performCompaction(finalPreviousMessages, resolvedModel, mode, model)
                 if (compactedList) {
                     finalPreviousMessages = compactedList 
+                    compactionOccurred = true
+                    const lastMsg = compactedList[compactedList.length - 1]
+                    if (lastMsg) {
+                        summaryMessageId = lastMsg.id
+                    }
                     await db.session.update({
                         where: {
                             id: id,
@@ -158,8 +168,13 @@ const app = new Hono<AuthenticatedEnv>()
             originalMessages: nextMessages,
             generateMessageId: () => generateId(),
             messageMetadata({ part }) {
-                if (part.type === 'start')
-                    return { mode, model }  // metadata for assistant message
+                if (part.type === 'start') {
+                    return {
+                        mode,
+                        model,
+                        compactionSummaryId: compactionOccurred ? summaryMessageId : undefined // for ongoing session -> not persisted
+                    }
+                }
 
                 if (part.type !== 'finish')
                     return undefined   // after streamText onFinish
@@ -168,8 +183,7 @@ const app = new Hono<AuthenticatedEnv>()
                     mode,
                     model,
                     durationMs: Date.now() - startTime,
-                    ...(completedUsage ? { usage: completedUsage } : {}),
-                    systemRestoration: (finalPreviousMessages.length > previousMessages.length) ? true : undefined
+                    ...(completedUsage ? { usage: completedUsage } : {})
                 }
             },
             async onFinish(event) { //after everything sent to client
@@ -177,13 +191,25 @@ const app = new Hono<AuthenticatedEnv>()
                     return
                 if (hasPendingToolCalls(event.responseMessage))
                     return
+
+                const cleanedMessages = event.messages.map(msg => {
+                    if (msg.role === 'assistant' && msg.metadata) {
+                        const { compactionSummaryId, ...rest } = msg.metadata 
+                        return {
+                            ...msg,
+                            metadata: rest
+                        }
+                    }
+                    return msg
+                })
+
                 await db.session.update({
                     where: {
                         id,
                         userId
                     },
                     data: {
-                        messages: event.messages as unknown as Prisma.InputJsonValue
+                        messages: cleanedMessages as unknown as Prisma.InputJsonValue
                     }
                 })
             },
