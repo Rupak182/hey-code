@@ -35,6 +35,7 @@
     "packages/database": {
       "name": "@heycode/database",
       "dependencies": {
+        "@heycode/shared": "workspace:*",
         "@neondatabase/serverless": "^1.1.0",
         "@prisma/adapter-neon": "^7.8.0",
         "@prisma/adapter-pg": "^7.8.0",
@@ -71,6 +72,9 @@
       "dependencies": {
         "ai": "^6.0.204",
         "zod": "^4.4.3",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
       },
     },
   },

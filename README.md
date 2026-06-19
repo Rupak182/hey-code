@@ -55,16 +55,30 @@ Before starting, ensure you have:
     bun install
     ```
 
-3.  **Configure environment variables:**
-    Copy the template and fill in your keys:
-    ```bash
-    cp .env.example .env
-    ```
-    Ensure the following keys in `.env` are configured:
-    - `API_URL` (defaults to `http://localhost:3000`)
-    - `DATABASE_URL` (NeonDB PostgreSQL Connection String)
-    - `GOOGLE_GENERATIVE_AI_API_KEY` (Gemini API Key)
-    - `EXA_API_KEY` (Exa AI search API key for web search capabilities)
+3.  **Configure environment variables & API keys:**
+    You can configure the application keys either locally or globally. 
+    
+    > [!NOTE]
+    > **Priority Order:** Local `.env` values will always override global settings in `~/.heycode/config.json`. This allows you to define your default credentials globally while using custom configurations (like a local database) for specific projects.
+
+    *   **Globally (Recommended):** Create a folder named `.heycode` in your user home directory, and inside it, create a `config.json` file:
+        ```json
+        {
+          "API_URL": "http://localhost:3000",
+          "DATABASE_URL": "postgresql://...",
+          "GOOGLE_GENERATIVE_AI_API_KEY": "AIzaSy...",
+          "EXA_API_KEY": "..."
+        }
+        ```
+    *   **Locally (via `.env`):** Copy the template and fill in your keys:
+        ```bash
+        cp .env.example .env
+        ```
+        Ensure the following keys in `.env` are configured:
+        - `API_URL` (defaults to `http://localhost:3000`)
+        - `DATABASE_URL` (NeonDB PostgreSQL Connection String)
+        - `GOOGLE_GENERATIVE_AI_API_KEY` (Gemini API Key)
+        - `EXA_API_KEY` (Exa AI search API key for web search capabilities)
 
 4.  **Generate Database Client:**
     Initialize the database ORM client:
@@ -93,15 +107,21 @@ bun run dev:cli
 ### 📂 Configuring the Workspace Directory (CWD)
 By default, the agent operates in the directory from which the CLI is launched. If you want the agent to operate on a different target codebase, you can set the workspace directory in one of three ways:
 
-1. **Via `.env` file:** Add the following line to your `.env` file:
+1. **Via `~/.heycode/config.json`:** Add it directly to your global JSON config:
+   ```json
+   {
+     "HEYCODE_CWD": "/path/to/your/target-project"
+   }
+   ```
+2. **Via `.env` file:** Add the following line to your local `.env` file:
    ```env
    HEYCODE_CWD=/path/to/your/target-project
    ```
-2. **Via environment variable:** Prefix the CLI execution command:
+3. **Via environment variable:** Prefix the CLI execution command:
    ```bash
    HEYCODE_CWD=/path/to/your/target-project bun run dev:cli
    ```
-3. **By running from the target directory:** Navigate to the directory and run the CLI using its path:
+4. **By running from the target directory:** Navigate to the directory and run the CLI using its path:
    ```bash
    cd /path/to/your/target-project
    bun run /path/to/heycode/packages/cli/src/index.tsx

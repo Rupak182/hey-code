@@ -17,3 +17,7 @@ export {
    getToolContracts,
    type ToolContracts
 } from "./schemas"
+
+export {
+    loadGlobalConfig
+} from "./config"

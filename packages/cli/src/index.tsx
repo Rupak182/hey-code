@@ -1,3 +1,8 @@
+#!/usr/bin/env bun
+import { loadGlobalConfig } from "@heycode/shared";
+loadGlobalConfig();
+
+
 import { createCliRenderer, TextAttributes } from "@opentui/core";
 import { createRoot } from "@opentui/react";
 import {createMemoryRouter, RouterProvider} from 'react-router'

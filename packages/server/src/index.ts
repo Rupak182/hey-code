@@ -1,3 +1,7 @@
+import { loadGlobalConfig } from "@heycode/shared";
+loadGlobalConfig();
+
+
 import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 import sessions from './routes/sessions'

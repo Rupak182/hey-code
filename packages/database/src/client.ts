@@ -3,9 +3,14 @@ import path from "path";
 import { PrismaNeon } from "@prisma/adapter-neon";
 import { PrismaClient } from "../generated/prisma/client.ts";
 
+import { loadGlobalConfig } from "@heycode/shared";
+
 dotenv.config({
   path: path.resolve(import.meta.dirname, "../../../.env"),
 });
+
+loadGlobalConfig();
+
 
 const databaseUrl = process.env.DATABASE_URL;
 
