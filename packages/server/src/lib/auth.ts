@@ -1,3 +1,4 @@
+/*
 import {createClerkClient } from "@clerk/backend"
 
 
@@ -12,9 +13,10 @@ if(!process.env.CLERK_PUBLISHABLE_KEY){
 const clerkClient= createClerkClient(
     {secretKey: process.env.CLERK_SECRET_KEY,
         publishableKey: process.env.CLERK_PUBLISHABLE_KEY})
+*/
 
-
-export async function authenticateOAuthRequest(request:Request){
+export async function authenticateOAuthRequest(request: Request) {
+    /*
     const requestState= await clerkClient.authenticateRequest(request,{
         acceptsToken:"oauth_token"
     })
@@ -35,7 +37,19 @@ export async function authenticateOAuthRequest(request:Request){
         userId:auth.userId,
         
     }
-    
+    */
+
+    const authHeader = request.headers.get("Authorization")
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+        const token = authHeader.substring(7).trim()
+        if (token) {
+            return {
+                userId: token
+            }
+        }
+    }
+
+    return {
+        userId: "dummy_user"
+    }
 }
-
-

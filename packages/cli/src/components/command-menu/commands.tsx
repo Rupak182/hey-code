@@ -66,6 +66,7 @@ export const COMMANDS: Command[] = [
     },
 
 
+    /*
     {
         name: "login",
         description: "Sign in with your browser",
@@ -83,6 +84,7 @@ export const COMMANDS: Command[] = [
             }
         }
     },
+    
 
 
     {
@@ -112,7 +114,7 @@ export const COMMANDS: Command[] = [
             ctx.toast.show({message:"Feature Disabled For Now"})
         }
     },
-    
+    */
     {
         name: "compact",
         description: "Manually compact conversation history",
