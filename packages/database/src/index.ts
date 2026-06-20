@@ -1,1 +1,1 @@
-export * from "../generated/prisma/client.ts"
+export * from "./schema.ts";

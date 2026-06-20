@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
-import { loadGlobalConfig } from "@heycode/shared";
-loadGlobalConfig();
+import { bootstrap } from "./lib/bootstrap";
+await bootstrap();
 
-
+// 5. UI app setup
 import { createCliRenderer, TextAttributes } from "@opentui/core";
 import { createRoot } from "@opentui/react";
 import {createMemoryRouter, RouterProvider} from 'react-router'

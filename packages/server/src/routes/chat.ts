@@ -6,9 +6,10 @@ import { zValidator } from "@hono/zod-validator";
 import type { AuthenticatedEnv } from "../middleware/require-auth";
 import { Hono } from "hono";
 import { db } from "@heycode/database/client";
+import { sessions } from "@heycode/database";
+import { eq, and } from "drizzle-orm";
 import { validateUIMessages, convertToModelMessages, streamText, generateId } from "ai";
 import { buildSystemPrompt } from "../system-prompt";
-import type { Prisma } from "@heycode/database";
 import { shouldCompress, compressHistory, performCompaction } from "../lib/compaction";
 
 type ChatMessageMetadata = {
@@ -58,12 +59,10 @@ const app = new Hono<AuthenticatedEnv>()
 
         const { id, messages, mode, model } = c.req.valid("json");
 
-        const session = await db.session.findUnique({
-            where: {
-                id: id,
-                userId
-            }
-        })
+        const session = await db.select()
+            .from(sessions)
+            .where(and(eq(sessions.id, id), eq(sessions.userId, userId)))
+            .get()
 
         if (!session) {
             return c.json({
@@ -94,15 +93,11 @@ const app = new Hono<AuthenticatedEnv>()
                     if (lastMsg) {
                         summaryMessageId = lastMsg.id
                     }
-                    await db.session.update({
-                        where: {
-                            id: id,
-                            userId
-                        },
-                        data: {
-                            messages: finalPreviousMessages as unknown as Prisma.InputJsonValue
-                        }
-                    })
+                    await db.update(sessions)
+                        .set({
+                            messages: finalPreviousMessages
+                        })
+                        .where(and(eq(sessions.id, id), eq(sessions.userId, userId)))
                 }
             } catch (err) {
                 console.error("Compaction failed:", err)
@@ -203,15 +198,11 @@ const app = new Hono<AuthenticatedEnv>()
                     return msg
                 })
 
-                await db.session.update({
-                    where: {
-                        id,
-                        userId
-                    },
-                    data: {
-                        messages: cleanedMessages as unknown as Prisma.InputJsonValue
-                    }
-                })
+                await db.update(sessions)
+                    .set({
+                        messages: cleanedMessages
+                    })
+                    .where(and(eq(sessions.id, id), eq(sessions.userId, userId)))
             },
 
             onError(error) {

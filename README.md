@@ -2,6 +2,8 @@
 
 HeyCode is an interactive, AI-powered coding assistant designed to help developers build and edit codebases directly from their command line. Running entirely within your terminal, HeyCode pairs a premium Terminal User Interface (TUI) with a robust backend agent that can analyze context (PLAN mode) and apply file edits or execute terminal command workflows (BUILD mode) using Google Gemini models.
 
+> [!NOTE]
+> **v1.0.3 — Local-First Architecture:** HeyCode is now fully self-contained. No database server, no cloud authentication, and no external services are required. Everything runs locally on your machine.
 
 <img width="1634" height="874" alt="image" src="https://github.com/user-attachments/assets/0a630efd-a936-494a-812b-a623422db0f4" />
 
@@ -15,34 +17,76 @@ HeyCode is an interactive, AI-powered coding assistant designed to help develope
 
 HeyCode is organized as a monorepo containing the following packages:
 
-*   **`packages/cli`**: The interactive Terminal User Interface (TUI) powered by React and `@opentui/core` / `@opentui/react`. It features streaming AI responses, past session browsing, configurable color themes, and quick-access command menus.
-*   **`packages/server`**: A Bun-powered Hono web server that processes and routes chat streams, integrates the Vercel AI SDK, executes local file tools, and stores sessions using Prisma.
-*   **`packages/database`**: Prisma-based database models (Neon serverless / PostgreSQL) that store session history and message states.
+*   **`packages/cli`**: The interactive Terminal User Interface (TUI) powered by React and `@opentui/core` / `@opentui/react`. It features streaming AI responses, past session browsing, configurable color themes, and quick-access command menus. On startup, it automatically boots an embedded Hono server on a random free port — no separate server process is needed.
+*   **`packages/server`**: A Bun-powered Hono web server that processes and routes chat streams, integrates the Vercel AI SDK, executes local file tools, and stores sessions using Drizzle ORM.
+*   **`packages/database`**: Drizzle ORM schema and migrations targeting a local SQLite database stored at `~/.heycode/heycode.db`. No external database is required.
 *   **`packages/shared`**: Shared configurations, TypeScript interfaces, Zod validation schemas, and tool definitions used across the CLI and server.
 
 ---
 
 ## ✨ Features
 
+- **Zero-Config Install:** A single `npm install -g heycode-cli` is all you need. No database server, no cloud account setup. Just add the API keys and use it.
+- **Local-First Storage:** All session history is stored in a local SQLite file at `~/.heycode/heycode.db`, giving you complete ownership and privacy.
+- **Multi-Instance Support:** Run multiple `heycode` instances simultaneously in different terminals. Each boots on a distinct random port and safely shares the same local SQLite database via WAL mode.
 - **Interactive Terminal UI (TUI):** A rich, responsive UI built with React inside the terminal, enabling side-by-side chat streaming, session loading, status spinners, and command menus.
 - **Dual Agent Modes:**
   - **`PLAN` Mode:** A safe, read-only analysis mode allowing the AI to query repository information using `readFile`, `listDirectory`, `glob`, `grep`, and `webSearch`.
   - **`BUILD` Mode:** An action-oriented execution mode where the AI can create and edit files (`writeFile`, `editFile`), run terminal tasks (`bash`), and perform web searches.
-- **Web Search Integration:** Powered by the official Exa SDK, allowing the agent to fetch highly relevant programming solutions, library APIs, and latest documentation snippets from the internet with optimized token usage (via semantic highlights) and cache-priority execution.
-- **Google Gemini Integration:** Designed to work with Google Gemini reasoning/thinking models (e.g. `gemini-2.5-flash`, `gemini-3.5-flash`, `gemini-2.5-flash-lite`).
+- **Web Search Integration:** Powered by the official Exa SDK, allowing the agent to fetch highly relevant programming solutions, library APIs, and latest documentation snippets from the internet.
+- **Multi-Provider AI Support:** Works with Google Gemini models (e.g. `gemini-2.5-flash`, `gemini-3.5-flash`, `gemini-2.5-flash-lite`) and Groq high-speed models (e.g. `openai/gpt-oss-120b`, `qwen/qwen3-32b`).
 
 ---
 
-## ⚡ Getting Started
+## ⚡ Getting Started (Global Install)
 
 ### Prerequisites
 
-Before starting, ensure you have:
+*   [Bun](https://bun.sh/) — required as the runtime
+*   A Google Gemini API Key / Groq API Key
+*   *(Optional)* An Exa API Key for web search capabilities
+
+### Installation
+
+```bash
+npm install -g heycode-cli
+```
+
+### Configure API Keys
+
+HeyCode reads its configuration from `~/.heycode/config.json`. The `~/.heycode` directory is created automatically on first launch. Just create the `config.json` file inside it:
+
+```json
+{
+  "GOOGLE_GENERATIVE_AI_API_KEY": "AIzaSy...",
+  "GROQ_API_KEY": "...",
+  "EXA_API_KEY": "..."
+}
+```
+> `EXA_API_KEY` is optional and only needed for web search capabilities.
+
+### Run
+
+```bash
+heycode
+```
+
+That's it! On the first launch, HeyCode will automatically:
+1. Create the `~/.heycode/` data directory.
+2. Initialize and migrate the local SQLite database.
+3. Start an embedded server on a random free port.
+4. Open the TUI in your terminal.
+
+---
+
+## 🛠️ Developer Setup (Contributing)
+
+### Prerequisites
+
 *   [Bun](https://bun.sh/) (version 1.0 or higher)
-*   A PostgreSQL database (such as a free [Neon](https://neon.tech/) database)
 *   Google Gemini API Key
 
-### Setup & Installation
+### Setup
 
 1.  **Clone the repository:**
     ```bash
@@ -55,77 +99,57 @@ Before starting, ensure you have:
     bun install
     ```
 
-3.  **Configure environment variables & API keys:**
-    You can configure the application keys either locally or globally. 
-    
-    > [!NOTE]
-    > **Priority Order:** Local `.env` values will always override global settings in `~/.heycode/config.json`. This allows you to define your default credentials globally while using custom configurations (like a local database) for specific projects.
-
-    *   **Globally (Recommended):** Create a folder named `.heycode` in your user home directory, and inside it, create a `config.json` file:
-        ```json
-        {
-          "API_URL": "http://localhost:3000",
-          "DATABASE_URL": "postgresql://...",
-          "GOOGLE_GENERATIVE_AI_API_KEY": "AIzaSy...",
-          "EXA_API_KEY": "..."
-        }
-        ```
-    *   **Locally (via `.env`):** Copy the template and fill in your keys:
-        ```bash
-        cp .env.example .env
-        ```
-        Ensure the following keys in `.env` are configured:
-        - `API_URL` (defaults to `http://localhost:3000`)
-        - `DATABASE_URL` (NeonDB PostgreSQL Connection String)
-        - `GOOGLE_GENERATIVE_AI_API_KEY` (Gemini API Key)
-        - `EXA_API_KEY` (Exa AI search API key for web search capabilities)
-
-4.  **Generate Database Client:**
-    Initialize the database ORM client:
-    ```bash
-    bun run --cwd packages/database db:generate
+3.  **Configure API keys globally:**
+    Create `~/.heycode/config.json` (the directory is auto-created on first launch):
+    ```json
+    {
+      "GOOGLE_GENERATIVE_AI_API_KEY": "AIzaSy...",
+      "GROQ_API_KEY": "...",
+      "EXA_API_KEY": "..."
+    }
     ```
+    Alternatively, create a local `.env` file in the project root with the same keys.
 
----
-
-## 🚀 Running the Application
-
-To run HeyCode, you need to launch both the server backend and the CLI application.
-
-### 1. Start the Server Backend
-```bash
-bun run dev:server
-```
-*The server will start listening on port `3000`.*
-
-### 2. Start the CLI (in a separate terminal)
-```bash
-bun run dev:cli
-```
-*This will open the interactive TUI interface in your terminal.*
+4.  **Run in development mode:**
+    ```bash
+    bun run dev:cli
+    ```
+    The CLI will boot the embedded server automatically. No separate server terminal is needed.
 
 ### 📂 Configuring the Workspace Directory (CWD)
-By default, the agent operates in the directory from which the CLI is launched. If you want the agent to operate on a different target codebase, you can set the workspace directory in one of three ways:
 
-1. **Via `~/.heycode/config.json`:** Add it directly to your global JSON config:
+By default, the agent operates in the directory from which the CLI is launched. To target a different codebase:
+
+1. **Via `~/.heycode/config.json`:**
    ```json
    {
      "HEYCODE_CWD": "/path/to/your/target-project"
    }
    ```
-2. **Via `.env` file:** Add the following line to your local `.env` file:
+2. **Via `.env` file:**
    ```env
    HEYCODE_CWD=/path/to/your/target-project
    ```
-3. **Via environment variable:** Prefix the CLI execution command:
-   ```bash
-   HEYCODE_CWD=/path/to/your/target-project bun run dev:cli
-   ```
-4. **By running from the target directory:** Navigate to the directory and run the CLI using its path:
+3. **By running from the target directory:**
    ```bash
    cd /path/to/your/target-project
-   bun run /path/to/heycode/packages/cli/src/index.tsx
+   heycode
    ```
+
+### 🗄️ Inspect the Database
+
+To visually browse your local SQLite database using Drizzle Studio:
+```bash
+bun db:studio
+```
+
+### Build & Publish
+
+```bash
+cd packages/cli
+bun run build   # Compiles CLI and bundles SQL migrations into dist/
+npm publish
+```
 
 ---
 
@@ -137,7 +161,7 @@ Inside the HeyCode TUI, type `/` to open the command menu. Supported commands in
 | :--- | :--- |
 | `/new` | Start a new AI coding session |
 | `/agents` | Switch agent mode (PLAN / BUILD) |
-| `/models` | Select between supported Gemini models |
+| `/models` | Select between supported AI models (Gemini / Groq) |
 | `/sessions`| Browse and restore past conversation sessions |
 | `/theme` | Change the TUI color theme |
 | `/exit` | Quit the TUI application |

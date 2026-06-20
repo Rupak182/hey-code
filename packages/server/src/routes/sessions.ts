@@ -4,11 +4,11 @@ import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { db } from "@heycode/database/client"
+import { sessions } from "@heycode/database"
+import { eq, desc, and } from "drizzle-orm"
 import type { AuthenticatedEnv } from "../middleware/require-auth"
-import { generateId } from "ai"
 import { resolveChatModel } from "../lib/models"
 import { performCompaction, type HeyCodeUIMessage } from "../lib/compaction"
-import type { Prisma } from "@heycode/database"
 
 const createSessionSchema = z.object({
     title: z.string(),
@@ -39,25 +39,21 @@ const compactSessionValidator = zValidator(
     }
 )
 
+
+
 const app = new Hono<AuthenticatedEnv>()
     .get("/", async (c) => {
-        const userId= c.get("userId")
-        const sessions = await db.session.findMany({
-            where:{
-                userId
-            },
-            orderBy: {
-                createdAt: "desc"
-            },
-            select: {
-                id: true,
-                title: true,
-                createdAt: true,
-            }
-        }
-        )
+        const userId = c.get("userId")
+        const list = await db.select({
+            id: sessions.id,
+            title: sessions.title,
+            createdAt: sessions.createdAt,
+        })
+        .from(sessions)
+        .where(eq(sessions.userId, userId))
+        .orderBy(desc(sessions.createdAt))
 
-        return c.json(sessions)
+        return c.json(list)
     })
     .get(":id", async (c) => {
         // await new Promise((resolve)=>setTimeout(resolve,10000))
@@ -68,12 +64,10 @@ const app = new Hono<AuthenticatedEnv>()
 
         const id = c.req.param("id")
 
-        const session = await db.session.findUnique({
-            where: {
-                id,
-                userId: c.get("userId")
-            }
-        })
+        const session = await db.select()
+            .from(sessions)
+            .where(and(eq(sessions.id, id), eq(sessions.userId, c.get("userId"))))
+            .get()
 
         if (!session) {
             return c.json({
@@ -86,15 +80,15 @@ const app = new Hono<AuthenticatedEnv>()
     .post("/", createSessionValidator, async (c) => {
         // await new Promise((resolve)=>setTimeout(resolve,10000))
 
-        const userId= c.get("userId")
-        const data= c.req.valid("json")
-
-        const session = await db.session.create({
-            data:{
-                ...data,
+        const userId = c.get("userId")
+        const data = c.req.valid("json")
+        const [session] = await db.insert(sessions)
+            .values({
+                title: data.title,
                 userId,
-            }
-        })
+                messages: []
+            })
+            .returning()
 
         return c.json(session, 201)
     })
@@ -103,12 +97,10 @@ const app = new Hono<AuthenticatedEnv>()
         const userId = c.get("userId")
         const body = c.req.valid("json")
 
-        const session = await db.session.findUnique({
-            where: {
-                id,
-                userId
-            }
-        })
+        const session = await db.select()
+            .from(sessions)
+            .where(and(eq(sessions.id, id), eq(sessions.userId, userId)))
+            .get()
 
         if (!session) {
             return c.json({
@@ -137,15 +129,11 @@ const app = new Hono<AuthenticatedEnv>()
                 }, 400)
             }
 
-            await db.session.update({
-                where: {
-                    id: id,
-                    userId
-                },
-                data: {
-                    messages: newMessagesList as unknown as Prisma.InputJsonValue
-                }
-            })
+            await db.update(sessions)
+                .set({
+                    messages: newMessagesList
+                })
+                .where(and(eq(sessions.id, id), eq(sessions.userId, userId)))
 
             return c.json(newMessagesList)
         } catch (err) {

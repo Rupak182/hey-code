@@ -1,6 +1,6 @@
 {
   "name": "heycode-cli",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "module": "src/index.tsx",
   "type": "module",
   "private": false,
@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "bun run --watch src/index.tsx",
-    "build": "bun build src/index.tsx --outfile dist/index.js --target bun --minify --external @opentui/core --external @opentui/react --external react --external react-router --external @ai-sdk/react"
+    "build": "bun build src/index.tsx --outfile dist/index.js --target bun --minify --external @opentui/core --external @opentui/react --external react --external react-router --external @ai-sdk/react && bun -e \"import fs from 'fs'; fs.cpSync('../database/drizzle', 'dist/drizzle', { recursive: true })\""
   },
   "devDependencies": {
     "@heycode/server": "workspace:*",
@@ -26,6 +26,7 @@
     "@opentui/react": "^0.3.2",
     "ai": "^6.0.204",
     "date-fns": "^4.4.0",
+    "drizzle-orm": "^0.45.2",
     "exa-js": "^2.14.0",
     "hono": "^4.12.25",
     "open": "^11.0.0",

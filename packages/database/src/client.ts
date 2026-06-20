@@ -1,7 +1,10 @@
 import dotenv from "dotenv";
 import path from "path";
-import { PrismaNeon } from "@prisma/adapter-neon";
-import { PrismaClient } from "../generated/prisma/client.ts";
+import os from "os";
+import fs from "fs";
+import { drizzle } from "drizzle-orm/bun-sqlite";
+import { Database } from "bun:sqlite";
+import * as schema from "./schema";
 
 import { loadGlobalConfig } from "@heycode/shared";
 
@@ -11,13 +14,17 @@ dotenv.config({
 
 loadGlobalConfig();
 
-
-const databaseUrl = process.env.DATABASE_URL;
-
-if (!databaseUrl) {
-  throw new Error("DATABASE_URL is not set");
+const heycodeDir = path.join(os.homedir(), ".heycode");
+if (!fs.existsSync(heycodeDir)) {
+  fs.mkdirSync(heycodeDir, { recursive: true });
 }
+const defaultDbPath = `file:${path.join(heycodeDir, "heycode.db")}`;
 
-const adapter = new PrismaNeon({ connectionString: databaseUrl });
+const rawDatabaseUrl = process.env.DATABASE_URL?.startsWith("file:")
+  ? process.env.DATABASE_URL
+  : defaultDbPath;
+const dbPath = rawDatabaseUrl.replace(/^file:/, "");
 
-export const db = new PrismaClient({ adapter });
+const sqlite = new Database(dbPath);
+sqlite.run("PRAGMA journal_mode = WAL;");
+export const db = drizzle(sqlite, { schema });
