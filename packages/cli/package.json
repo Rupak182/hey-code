@@ -1,12 +1,20 @@
 {
   "name": "heycode-cli",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "module": "src/index.tsx",
   "type": "module",
   "private": false,
   "bin": {
     "heycode": "dist/index.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Rupak182/hey-code.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Rupak182/hey-code/issues"
+  },
+  "homepage": "https://github.com/Rupak182/hey-code#readme",
   "scripts": {
     "dev": "bun run --watch src/index.tsx",
     "build": "bun build src/index.tsx --outfile dist/index.js --target bun --minify --external @opentui/core --external @opentui/react --external react --external react-router --external @ai-sdk/react && bun -e \"import fs from 'fs'; fs.cpSync('../database/drizzle', 'dist/drizzle', { recursive: true })\""
