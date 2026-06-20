@@ -3,6 +3,7 @@ import Exa from "exa-js"
 import { match } from "assert"
 import { mkdir, readdir, readFile, stat, writeFile } from "fs/promises"
 import { dirname, isAbsolute, join, relative, resolve } from "path"
+import { createPatch } from "diff"
 
 
 const MAX_FILE_SIZE = 10_000
@@ -176,16 +177,23 @@ export async function executeLocalTool(toolName: string, input: unknown, mode: M
             const { cwd, resolved } = resolveInsideCwd(path)
             const rel = relative(cwd, resolved)
 
-
+            let oldContent = ""
+            try {
+                oldContent = await readFile(resolved, "utf-8")
+            } catch (e) {
+                // File does not exist yet (expected for new files)
+            }
 
             await mkdir(dirname(resolved), { recursive: true })
             await writeFile(resolved, content, "utf-8")
 
+            const diff = createPatch(path, oldContent, content, 'Original', 'Modified')
 
             return {
                 success: true as const,
                 path: relative(cwd, resolved),
-                bytesWritten: Buffer.byteLength(content, "utf-8")
+                bytesWritten: Buffer.byteLength(content, "utf-8"),
+                diff
             }
 
         }
@@ -206,14 +214,15 @@ export async function executeLocalTool(toolName: string, input: unknown, mode: M
                 }
             }
 
-            await writeFile(resolved, content.replace(oldString, newString), "utf-8")
+            const newContent = content.replace(oldString, newString)
+            await writeFile(resolved, newContent, "utf-8")
 
-
-
+            const diff = createPatch(path, content, newContent, 'Original', 'Modified')
 
             return {
                 success: true as const,
-                path: relative(cwd, resolved)
+                path: relative(cwd, resolved),
+                diff
             }
         }
 

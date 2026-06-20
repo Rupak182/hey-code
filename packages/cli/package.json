@@ -1,6 +1,6 @@
 {
   "name": "heycode-cli",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "module": "src/index.tsx",
   "type": "module",
   "private": false,
@@ -15,6 +15,7 @@
     "@heycode/server": "workspace:*",
     "@heycode/shared": "workspace:*",
     "@types/bun": "latest",
+    "@types/diff": "^8.0.0",
     "@types/react": "^19.2.17"
   },
   "peerDependencies": {
@@ -26,6 +27,7 @@
     "@opentui/react": "^0.3.2",
     "ai": "^6.0.204",
     "date-fns": "^4.4.0",
+    "diff": "^9.0.0",
     "drizzle-orm": "^0.45.2",
     "exa-js": "^2.14.0",
     "hono": "^4.12.25",

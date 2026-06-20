@@ -32,8 +32,13 @@ function formatToolArgs(tc: ClientToolCallPart): string {
     if (typeof tc.input !== 'object')
         return String(tc.input)
 
-    return Object.values(tc.input).map(String).join(" ")
+    const toolName = tc.type === "dynamic-tool" ? tc.toolName : tc.type.slice("tool-".length)
+    if (toolName === "writeFile" || toolName === "editFile") {
+        const input = tc.input as Record<string, unknown>
+        return typeof input?.path === "string" ? input.path : ""
+    }
 
+    return Object.values(tc.input).map(String).join(" ")
 }
 
 type PartGroup = {
@@ -93,6 +98,10 @@ export function BotMessage({ parts, model, mode, durationMs, streaming = false }
 
                                 if (isToolPart(part)) {
                                     const toolName = part.type === "dynamic-tool" ? part.toolName : part.type.slice("tool-".length)
+                                    
+                                    const resultObj = (part.state === "output-available" && "output" in part && part.output && typeof part.output === "object") ? part.output as Record<string, any> : null
+                                    const hasDiff = resultObj && resultObj.success && typeof resultObj.diff === "string"
+
                                     return (
                                         <box
                                             key={part.toolCallId}
@@ -100,6 +109,8 @@ export function BotMessage({ parts, model, mode, durationMs, streaming = false }
                                             borderColor={colors.thinkingBorder}
                                             width="100%"
                                             paddingX={2}
+                                            flexDirection="column"
+                                            gap={hasDiff ? 1 : 0}
                                         >
                                             <text attributes={TextAttributes.DIM}>
                                                 <em fg={colors.info}>{formatToolName(toolName)} </em>
@@ -107,6 +118,21 @@ export function BotMessage({ parts, model, mode, durationMs, streaming = false }
                                                 {part.state !== "output-available" && part.state !== "output-error" ? "..." : ""}
                                                 {part.state === "output-error" ? ` (Error: ${part.errorText})` : ""}
                                             </text>
+
+                                            {hasDiff && (
+                                                <box border={true} borderStyle="single" borderColor={colors.thinkingBorder} padding={1} width="100%">
+                                                    <diff
+                                                        diff={resultObj.diff}
+                                                        filetype={resultObj.path?.split('.').pop() || ''}
+                                                        view="unified"
+                                                        showLineNumbers={true}
+                                                        addedBg="#1B2B24"
+                                                        removedBg="#2D1C1E"
+                                                        addedContentBg="#2A4535"
+                                                        removedContentBg="#4C2B2E"
+                                                    />
+                                                </box>
+                                            )}
                                         </box>
                                     )
                                 }
