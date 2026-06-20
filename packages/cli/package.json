@@ -1,6 +1,6 @@
 {
   "name": "heycode-cli",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "module": "src/index.tsx",
   "type": "module",
   "private": false,
@@ -26,6 +26,7 @@
     "@opentui/react": "^0.3.2",
     "ai": "^6.0.204",
     "date-fns": "^4.4.0",
+    "exa-js": "^2.14.0",
     "hono": "^4.12.25",
     "open": "^11.0.0",
     "opentui-spinner": "^0.0.6",
