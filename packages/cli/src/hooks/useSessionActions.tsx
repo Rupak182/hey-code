@@ -7,6 +7,7 @@ import { hasUncommittedChanges, revertToMessage, forkSessionBranch, discardUncom
 import type { Message } from "./useChat"
 import { RevertConfirmDialog, ForkConfirmDialog } from "../components/dialogs"
 import type { InferResponseType } from "hono"
+import { copyToClipboard } from "../lib/clipboard"
 
 type SessionData = InferResponseType<typeof apiClient.sessions[":id"]["$get"], 200>
 
@@ -137,8 +138,24 @@ export function useSessionActions({ session, setMessages, setPrefill }: UseSessi
         }
     }
 
+    const handleCopy = async (msg: Message) => {
+        try {
+            const targetText = msg.parts.filter((p) => p.type === "text").map((p) => p.text).join("")
+            await copyToClipboard(targetText)
+            toast.show({
+                message: "Successfully copied message to clipboard"
+            })
+        } catch (err) {
+            toast.show({
+                variant: "error",
+                message: err instanceof Error ? err.message : "Failed to copy to clipboard"
+            })
+        }
+    }
+
     return {
         handleRevert,
-        handleFork
+        handleFork,
+        handleCopy
     }
 }

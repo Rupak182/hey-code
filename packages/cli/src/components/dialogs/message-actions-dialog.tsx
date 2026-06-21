@@ -3,7 +3,7 @@ import { useDialog } from "../providers/dialog"
 import { DialogSearchList } from "../dialog-search-list"
 import { TextAttributes } from "@opentui/core"
 
-export type MessageAction = "revert" | "fork"
+export type MessageAction = "revert" | "fork" | "copy"
 
 interface ActionItem {
     id: MessageAction
@@ -13,6 +13,7 @@ interface ActionItem {
 
 const actions: ActionItem[] = [
     { id: "revert", label: "Revert", description: "undo messages and file changes" },
+    { id: "copy", label: "Copy", description: "message text to clipboard" },
     { id: "fork", label: "Fork", description: "create a new session" }
 ]
 

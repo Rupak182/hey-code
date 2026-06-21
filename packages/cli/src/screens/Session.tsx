@@ -82,7 +82,7 @@ function SessionChat({ session, initialPrompt, prefillPrompt }: { session: Sessi
 
     const [prefill, setPrefill] = useState<{ text: string; timestamp: number } | undefined>(undefined)
 
-    const { handleRevert, handleFork } = useSessionActions({
+    const { handleRevert, handleFork, handleCopy } = useSessionActions({
         session,
         setMessages,
         setPrefill
@@ -98,6 +98,8 @@ function SessionChat({ session, initialPrompt, prefillPrompt }: { session: Sessi
                             void handleRevert(msg)
                         } else if (actionId === "fork") {
                             void handleFork(msg)
+                        } else if (actionId === "copy") {
+                            void handleCopy(msg)
                         }
                     }}
                 />
