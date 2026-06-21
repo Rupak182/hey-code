@@ -2,9 +2,17 @@ import { spawn } from "child_process"
 import { resolve } from "path"
 import { mkdir, readFile, writeFile } from "fs/promises"
 
-const CWD = process.env.HEYCODE_CWD || process.cwd()
-const GIT_DIR = resolve(CWD, ".heycode/git")
-const WORK_TREE = CWD
+function getCwd(): string {
+    return process.env.HEYCODE_CWD || process.cwd()
+}
+
+function getGitDir(): string {
+    return resolve(getCwd(), ".heycode/git")
+}
+
+function getWorkTree(): string {
+    return getCwd()
+}
 
 let hasGitCache: boolean | null = null
 
@@ -26,8 +34,8 @@ export async function isGitInstalled(): Promise<boolean> {
 function runGit(args: string[]): Promise<string> {
     return new Promise((resolvePromise, rejectPromise) => {
         // Enforce custom git-dir and work-tree to keep it separate from the developer's main .git
-        const gitArgs = ["--git-dir", GIT_DIR, "--work-tree", WORK_TREE, ...args]
-        const proc = spawn("git", gitArgs, { cwd: CWD })
+        const gitArgs = ["--git-dir", getGitDir(), "--work-tree", getWorkTree(), ...args]
+        const proc = spawn("git", gitArgs, { cwd: getCwd() })
         let stdout = ""
         let stderr = ""
 
@@ -55,10 +63,10 @@ export async function initGitRepo(): Promise<void> {
     if (!(await isGitInstalled())) return
     
     // 1. Create .heycode/ directory
-    await mkdir(resolve(CWD, ".heycode"), { recursive: true })
+    await mkdir(resolve(getCwd(), ".heycode"), { recursive: true })
 
     // 2. Automatically ignore .heycode/ in the project's primary .gitignore
-    const gitignorePath = resolve(CWD, ".gitignore")
+    const gitignorePath = resolve(getCwd(), ".gitignore")
     try {
         const content = await readFile(gitignorePath, "utf-8")
         if (!content.includes(".heycode/")) {
@@ -72,8 +80,8 @@ export async function initGitRepo(): Promise<void> {
     await runGit(["init"])
 
     // 4. Write repo-specific exclude rules to prevent tracking main .git or .heycode metadata
-    const excludePath = resolve(GIT_DIR, "info/exclude")
-    await mkdir(resolve(GIT_DIR, "info"), { recursive: true })
+    const excludePath = resolve(getGitDir(), "info/exclude")
+    await mkdir(resolve(getGitDir(), "info"), { recursive: true })
     await writeFile(excludePath, ".git/\n.heycode/\n", "utf-8")
 
     try {
@@ -93,14 +101,14 @@ export async function commitForMessage(messageId: string): Promise<void> {
         await runGit(["add", "-A"])
         await runGit(["commit", "-m", `heycode: message ${messageId}`, "--allow-empty", "--no-verify"])
     } catch (err) {
-        console.error("Git commit failed:", err)
+        throw err
     }
 }
 
 export async function getCommitForMessage(messageId: string): Promise<string | null> {
     try {
         if (!(await isGitRepo())) return null
-        const hash = await runGit(["log", `--grep=heycode: message ${messageId}`, "-n", "1", "--format=%H"])
+        const hash = await runGit(["log", `--grep=heycode: message ${messageId}`, "--fixed-strings", "-n", "1", "--format=%H"])
         return hash || null
     } catch {
         return null
@@ -123,24 +131,24 @@ export async function revertToMessage(messageId: string): Promise<void> {
         throw new Error(`No git checkpoint found for message ${messageId}`)
     }
     await runGit(["reset", "--hard", hash])
+    await runGit(["clean", "-fd"])
 }
 
-export async function forkSessionBranch(messageId: string, forkNumber: number, sessionTitle: string): Promise<string> {
+export async function forkSessionBranch(messageId: string, newSessionId: string): Promise<string> {
     const hash = await getCommitForMessage(messageId)
     if (!hash) {
         throw new Error(`No git checkpoint found for message ${messageId}`)
     }
-    const slugified = sessionTitle
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "")
-    const branchName = `ai/heycode/${slugified}-fork-${forkNumber}`
+    const branchName = `ai/heycode/session-${newSessionId}`
     await runGit(["checkout", "-b", branchName, hash])
     return branchName
 }
 
 export async function switchSession(sessionId: string): Promise<void> {
     try {
+        if (!(await isGitRepo())) {
+            await initGitRepo()
+        }
         if (!(await isGitRepo())) return
         const branchName = `ai/heycode/session-${sessionId}`
         
@@ -152,6 +160,17 @@ export async function switchSession(sessionId: string): Promise<void> {
             await runGit(["checkout", "-b", branchName])
         }
     } catch (err) {
-        console.error("Failed to switch session branch:", err)
+        throw err
+    }
+}
+
+export async function discardUncommittedChanges(): Promise<void> {
+    try {
+        if (await isGitRepo()) {
+            await runGit(["reset", "--hard", "HEAD"])
+            await runGit(["clean", "-fd"])
+        }
+    } catch (err) {
+        throw err
     }
 }

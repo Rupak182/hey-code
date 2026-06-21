@@ -41,6 +41,7 @@ type Props = {
     disabled?: boolean;
     sessionId?: string;
     setMessages?: (messages: Message[]) => void;
+    prefill?: { text: string; timestamp: number };
 }
 
 
@@ -281,7 +282,7 @@ function FileMentionMenu({
 }
 
 
-export function InputBar({ onSubmit, disabled, sessionId, setMessages }: Props) {
+export function InputBar({ onSubmit, disabled, sessionId, setMessages, prefill }: Props) {
     const textareaRef = useRef<TextareaRenderable>(null)
     const onSubmitRef = useRef<() => void>(() => { });
     const renderer = useRenderer();
@@ -510,6 +511,17 @@ export function InputBar({ onSubmit, disabled, sessionId, setMessages }: Props) 
             setResponder("base", null)
         }
     }, [disabled, setResponder])
+
+    useEffect(() => {
+        if (prefill) {
+            const textarea = textareaRef.current
+            if (textarea) {
+                textarea.setText(prefill.text)
+            }
+        }
+    }, [prefill])
+
+
 
 
     useKeyboard((key)=>{

@@ -5,8 +5,10 @@ import { useChat as useAIChat } from "@ai-sdk/react"
 import { getAuth } from "../lib/auth"
 import { executeLocalTool } from "../lib/local-tools"
 import  { Mode,type ToolContracts, toolInputSchemas } from "@heycode/shared"
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { checkApproval, getToolDescription, ApprovalDecision, type ApprovalPolicy, type ToolInputMap } from "../lib/safety"
+import { commitForMessage, switchSession } from "../lib/git"
+import { useToast } from "../components/providers/toast"
 
 
 
@@ -41,10 +43,22 @@ export type PendingApproval = {
 }
 
 export function useChat(sessionId: string, initialMessages: Message[]) {
+    const toast = useToast()
     const [policy, setPolicy] = useState<ApprovalPolicy>('AUTO') // TODO: Config to Set it
     const [pendingApprovals, setPendingApprovals] = useState<PendingApproval[]>([])
 
     const pendingApproval = useMemo(() => pendingApprovals[0] ?? null, [pendingApprovals])
+
+    // Switch branch in shadow repository when session ID changes
+    useEffect(() => {
+        if (!sessionId) return
+        switchSession(sessionId).catch((err) => {
+            toast.show({
+                variant: "error",
+                message: `Failed to switch Git session branch: ${err instanceof Error ? err.message : String(err)}`
+            })
+        })
+    }, [sessionId, toast])
 
     const transport = useMemo(() => {
         return new DefaultChatTransport<Message>({
@@ -171,6 +185,47 @@ export function useChat(sessionId: string, initialMessages: Message[]) {
 
         sendAutomaticallyWhen:lastAssistantMessageIsCompleteWithToolCalls  // sends messages again with prepareSendMessagesRequest
     })
+
+    const prevMessagesCountRef = useRef(initialMessages.length)
+    const prevStatusRef = useRef<typeof chat.status>("ready")
+
+    useEffect(() => {
+        const messages = chat.messages
+        const status = chat.status
+
+        const prevMessagesCount = prevMessagesCountRef.current
+        const prevStatus = prevStatusRef.current
+
+        prevMessagesCountRef.current = messages.length
+        prevStatusRef.current = status
+
+        // Case 1: A new user message was added (User message committed)
+        if (messages.length > prevMessagesCount) {
+            const lastMsg = messages[messages.length - 1]
+            if (lastMsg && lastMsg.role === "user") {
+                commitForMessage(lastMsg.id).catch((err) => {
+                    toast.show({
+                        variant: "error",
+                        message: `Failed to commit user message checkpoint: ${err instanceof Error ? err.message : String(err)}`
+                    })
+                })
+            }
+        }
+
+        // Case 2: Assistant finished generation (status went from streaming to ready)
+        if (prevStatus === "streaming" && status === "ready") {
+            const lastMsg = messages[messages.length - 1]
+            if (lastMsg && lastMsg.role === "assistant") {
+                commitForMessage(lastMsg.id).catch((err) => {
+                    toast.show({
+                        variant: "error",
+                        message: `Failed to commit assistant message checkpoint: ${err instanceof Error ? err.message : String(err)}`
+                    })
+                })
+            }
+        }
+    }, [chat.messages, chat.status, toast])
+
 
     const submit = useCallback((params: { userText: string, mode: Mode, model: SupportedChatModelId }) => {
         return chat.sendMessage({  // populates message and send request to server

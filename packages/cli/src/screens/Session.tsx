@@ -17,7 +17,9 @@ import { PermissionPrompt } from "../components/permission-prompt"
 import { useTheme } from "../components/providers/theme"
 import { TextAttributes } from "@opentui/core"
 import { useDialog } from "../components/providers/dialog"
-import { MessageActionsDialogContent, RevertConfirmDialog } from "../components/dialogs"
+import { MessageActionsDialogContent } from "../components/dialogs"
+import { useSessionActions } from "../hooks/useSessionActions"
+
 
 function CompactionSeparator() {
     const { colors } = useTheme()
@@ -38,8 +40,10 @@ const sessionLocationSchema = z.object({
         message: z.string(),
         mode: z.custom<Mode>(),
         model: z.custom<SupportedChatModelId>(),
+    }).optional(),
+    prefillPrompt: z.object({
+        message: z.string(),
     }).optional()
-
 })
 
 
@@ -67,13 +71,22 @@ function ChatMessage({ msg, onUserMessageAction }: { msg: Message, onUserMessage
     )
 }
 
-function SessionChat({ session, initialPrompt }: { session: SessionData, initialPrompt?: { message: string, mode: Mode, model: SupportedChatModelId } }) {
+function SessionChat({ session, initialPrompt, prefillPrompt }: { session: SessionData, initialPrompt?: { message: string, mode: Mode, model: SupportedChatModelId }, prefillPrompt?: { message: string } }) {
     const [initialMessages, setInitialMessages] = useState<Message[]>((session.messages as unknown as Message[]))
     const { messages, setMessages, status, submit, abort, interrupt, error, pendingApproval } = useChat(session.id, initialMessages)
     const { isTopLayer } = useKeyboardLayer()
     const { mode, model } = usePromptConfig()
     const dialog = useDialog()
     const toast = useToast()
+    const navigate = useNavigate()
+
+    const [prefill, setPrefill] = useState<{ text: string; timestamp: number } | undefined>(undefined)
+
+    const { handleRevert, handleFork } = useSessionActions({
+        session,
+        setMessages,
+        setPrefill
+    })
 
     const handleUserMessageAction = (msg: Message) => {
         dialog.open({
@@ -82,22 +95,9 @@ function SessionChat({ session, initialPrompt }: { session: SessionData, initial
                 <MessageActionsDialogContent
                     onSelectAction={(actionId) => {
                         if (actionId === "revert") {
-                            dialog.open({
-                                title: "Confirm Revert",
-                                children: (
-                                    <RevertConfirmDialog
-                                        onConfirm={(decision) => {
-                                            toast.show({
-                                                message: `Dummy Confirm Revert: ${decision}`
-                                            })
-                                        }}
-                                    />
-                                )
-                            })
-                        } else {
-                            toast.show({
-                                message: `Dummy Fork: ${msg.id}`
-                            })
+                            void handleRevert(msg)
+                        } else if (actionId === "fork") {
+                            void handleFork(msg)
                         }
                     }}
                 />
@@ -119,6 +119,8 @@ function SessionChat({ session, initialPrompt }: { session: SessionData, initial
         }
     })
 
+    const hasPrefilledPromptRef = useRef(false)
+
     useEffect(() => {
         if (!initialPrompt || hasSubmittedInitialPromptRef.current) return
         hasSubmittedInitialPromptRef.current = true
@@ -128,6 +130,12 @@ function SessionChat({ session, initialPrompt }: { session: SessionData, initial
             model: initialPrompt.model,
         })
     }, [initialPrompt, submit])
+
+    useEffect(() => {
+        if (!prefillPrompt || hasPrefilledPromptRef.current) return
+        hasPrefilledPromptRef.current = true
+        setPrefill({ text: prefillPrompt.message, timestamp: Date.now() })
+    }, [prefillPrompt])
 
 
 
@@ -143,6 +151,7 @@ function SessionChat({ session, initialPrompt }: { session: SessionData, initial
             inputDisabled={pendingApproval !== null}
             sessionId={session.id}
             setMessages={setMessages}
+            prefill={prefill}
         >
             {
                 messages.map(msg => (
@@ -186,11 +195,15 @@ export function Session() {
         return parsed.success ? parsed.data : null
     }, [location.state])
 
+
+
     const [session, setSession] = useState<SessionData | null>(prefetched?.session ?? null);
 
     useEffect(() => {
-        if (prefetched?.session)
+        if (prefetched?.session) {
+            setSession(prefetched.session) // to fix state component issue when we fork
             return
+        }
         setSession(null)
         if (!id) return
 
@@ -232,6 +245,6 @@ export function Session() {
     }
 
     return (
-        <SessionChat key={`${session.id}`} session={session} initialPrompt={prefetched?.initialPrompt} />
+        <SessionChat key={`${session.id}`} session={session} initialPrompt={prefetched?.initialPrompt} prefillPrompt={prefetched?.prefillPrompt} />
     )
 }

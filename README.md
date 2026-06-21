@@ -33,6 +33,7 @@ HeyCode is organized as a monorepo containing the following packages:
 - **Dual Agent Modes:**
   - **`PLAN` Mode:** A safe, read-only analysis mode allowing the AI to query repository information using `readFile`, `listDirectory`, `glob`, `grep`, and `webSearch`.
   - **`BUILD` Mode:** An action-oriented execution mode where the AI can create and edit files (`writeFile`, `editFile`), run terminal tasks (`bash`), and perform web searches.
+- **Git-Backed Version Control (Fork & Revert):** Every message automatically creates a shadow Git checkpoint in your workspace. Easily revert files back to any previous prompt state or fork a new session branch to experiment with alternative approaches without losing work.
 - **Inline Diff Previews:** Automatic, inline visual unified diff previews for all file creations (`writeFile`) and edits (`editFile`) rendered directly in the chat flow, color-coded for optimal readability.
 - **Web Search Integration:** Powered by the official Exa SDK, allowing the agent to fetch highly relevant programming solutions, library APIs, and latest documentation snippets from the internet.
 - **Multi-Provider AI Support:** Works with Google Gemini models (e.g. `gemini-2.5-flash`, `gemini-3.5-flash`, `gemini-2.5-flash-lite`) and Groq high-speed models (e.g. `openai/gpt-oss-120b`, `qwen/qwen3-32b`).
@@ -136,6 +137,10 @@ By default, the agent operates in the directory from which the CLI is launched. 
    cd /path/to/your/target-project
    heycode
    ```
+
+> [!NOTE]
+> **Git Checkpoint Isolation:** Each workspace directory gets its own hidden shadow Git repository located at `${HEYCODE_CWD}/.heycode/git`. Git checkpoints and branches are completely isolated to each individual directory. If you change your workspace directory, the session history in the database persists, but you can only perform revert/fork operations on sessions that match your currently active directory.
+
 
 ### 🗄️ Inspect the Database
 
