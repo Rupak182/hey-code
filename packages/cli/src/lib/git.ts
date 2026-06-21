@@ -31,8 +31,10 @@ export async function isGitInstalled(): Promise<boolean> {
     })
 }
 
+let gitQueue = Promise.resolve<any>(undefined)
+
 function runGit(args: string[]): Promise<string> {
-    return new Promise((resolvePromise, rejectPromise) => {
+    const run = () => new Promise<string>((resolvePromise, rejectPromise) => {
         // Enforce custom git-dir and work-tree to keep it separate from the developer's main .git
         const gitArgs = ["--git-dir", getGitDir(), "--work-tree", getWorkTree(), ...args]
         const proc = spawn("git", gitArgs, { cwd: getCwd() })
@@ -47,6 +49,10 @@ function runGit(args: string[]): Promise<string> {
             else rejectPromise(new Error(stderr.trim() || `git exited with code ${code}`))
         })
     })
+
+    const next = gitQueue.then(run)
+    gitQueue = next.catch(() => {})
+    return next
 }
 
 export async function isGitRepo(): Promise<boolean> {
