@@ -1,6 +1,6 @@
 {
   "name": "heycode-cli",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "module": "src/index.tsx",
   "type": "module",
   "private": false,
