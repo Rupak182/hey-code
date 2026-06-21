@@ -6,13 +6,14 @@ import  { Mode } from "@heycode/shared"
 type Props={
     message:string,
     mode:Mode,
+    onAction?: () => void,
 }
 
-export function UserMessage({message,mode}:Props){
+export function UserMessage({message,mode,onAction}:Props){
     const {colors}=useTheme()
 
     return(
-     <box width="100%" alignItems="center">
+     <box width="100%" alignItems="center" onMouseDown={onAction}>
         <box border={["left"]} 
         borderColor={mode===Mode.PLAN ?colors.planMode:colors.primary}
         width='100%'

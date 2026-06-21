@@ -16,6 +16,8 @@ import { usePromptConfig } from "../components/providers/prompt-config"
 import { PermissionPrompt } from "../components/permission-prompt"
 import { useTheme } from "../components/providers/theme"
 import { TextAttributes } from "@opentui/core"
+import { useDialog } from "../components/providers/dialog"
+import { MessageActionsDialogContent, RevertConfirmDialog } from "../components/dialogs"
 
 function CompactionSeparator() {
     const { colors } = useTheme()
@@ -42,7 +44,7 @@ const sessionLocationSchema = z.object({
 
 
 
-function ChatMessage({ msg }: { msg: Message }): React.ReactNode {
+function ChatMessage({ msg, onUserMessageAction }: { msg: Message, onUserMessageAction?: (msg: Message) => void }): React.ReactNode {
     if (msg.metadata?.systemRestoration && msg.role === "user") {
         return null
     }
@@ -51,7 +53,7 @@ function ChatMessage({ msg }: { msg: Message }): React.ReactNode {
 
 
     if (msg.role === "user") {
-        return <UserMessage message={text} mode={msg.metadata?.mode ?? Mode.BUILD} />
+        return <UserMessage message={text} mode={msg.metadata?.mode ?? Mode.BUILD} onAction={onUserMessageAction ? () => onUserMessageAction(msg) : undefined} />
     }
 
 
@@ -70,6 +72,38 @@ function SessionChat({ session, initialPrompt }: { session: SessionData, initial
     const { messages, setMessages, status, submit, abort, interrupt, error, pendingApproval } = useChat(session.id, initialMessages)
     const { isTopLayer } = useKeyboardLayer()
     const { mode, model } = usePromptConfig()
+    const dialog = useDialog()
+    const toast = useToast()
+
+    const handleUserMessageAction = (msg: Message) => {
+        dialog.open({
+            title: "Actions",
+            children: (
+                <MessageActionsDialogContent
+                    onSelectAction={(actionId) => {
+                        if (actionId === "revert") {
+                            dialog.open({
+                                title: "Confirm Revert",
+                                children: (
+                                    <RevertConfirmDialog
+                                        onConfirm={(decision) => {
+                                            toast.show({
+                                                message: `Dummy Confirm Revert: ${decision}`
+                                            })
+                                        }}
+                                    />
+                                )
+                            })
+                        } else {
+                            toast.show({
+                                message: `Dummy Fork: ${msg.id}`
+                            })
+                        }
+                    }}
+                />
+            )
+        })
+    }
 
     const hasSubmittedInitialPromptRef = useRef(false)
     useEffect(() => {
@@ -116,7 +150,7 @@ function SessionChat({ session, initialPrompt }: { session: SessionData, initial
                         {((msg.metadata?.systemRestoration && msg.role === "user") || msg.metadata?.compactionSummaryId) && (
                             <CompactionSeparator />
                         )}
-                        <ChatMessage msg={msg} />
+                        <ChatMessage msg={msg} onUserMessageAction={handleUserMessageAction} />
                     </box>
                 ))
             }

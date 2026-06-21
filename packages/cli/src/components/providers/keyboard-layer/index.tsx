@@ -66,7 +66,7 @@ export function KeyboardLayerProvider({
           if(!key.ctrl || key.name !=='c'){
             return ;
           }
-          const currentStack= stackRef.current
+          const currentStack= stackRef.current  // avoid stale clousures -> this hook doesn't get recreated on stack change
 
           for(let i=currentStack.length-1;i>=0;i--){
             const layerId= currentStack[i]
