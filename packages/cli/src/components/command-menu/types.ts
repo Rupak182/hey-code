@@ -14,7 +14,9 @@ export type CommandContext={
     setMode:(mode:Mode)=>void,
     setModel:(model:SupportedChatModelId)=>void,
     sessionId?: string,
-    setMessages?: (messages: Message[]) => void
+    setMessages?: (messages: Message[]) => void,
+    messages?: Message[],
+    setPrefill?: (prefill: { text: string; timestamp: number } | undefined) => void
 }
 
 

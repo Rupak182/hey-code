@@ -4,6 +4,7 @@ import type { Command, CommandContext } from "./types";
 import { performLogin } from "../../lib/oauth";
 import { clearAuth } from "../../lib/auth";
 import { handleCompaction } from "../../lib/compaction";
+import { handleUndo } from "../../lib/undo";
 
 
 export const COMMANDS: Command[] = [
@@ -122,6 +123,12 @@ export const COMMANDS: Command[] = [
         action: handleCompaction
     },
     
+    {
+        name: "undo",
+        description: "Undo the last message",
+        value: "/undo",
+        action: handleUndo
+    },
     {
         name: "exit",
         description: "Quit the application",

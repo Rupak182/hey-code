@@ -15,10 +15,12 @@ type Props = {
     interruptable?:boolean,
     sessionId?: string,
     setMessages?: (messages: Message[]) => void,
-    prefill?: { text: string; timestamp: number }
+    prefill?: { text: string; timestamp: number },
+    messages?: Message[],
+    setPrefill?: (prefill: { text: string; timestamp: number } | undefined) => void
 }
 
-export function SessionShell({ children, onSubmit, inputDisabled = false, loading = false ,interruptable=false, sessionId, setMessages, prefill}: Props) {
+export function SessionShell({ children, onSubmit, inputDisabled = false, loading = false ,interruptable=false, sessionId, setMessages, prefill, messages, setPrefill}: Props) {
     // const scrollRef = useRef<ScrollBoxRenderable>(null)
 
     // useEffect(() => {
@@ -52,6 +54,8 @@ export function SessionShell({ children, onSubmit, inputDisabled = false, loadin
                     sessionId={sessionId}
                     setMessages={setMessages}
                     prefill={prefill}
+                    messages={messages}
+                    setPrefill={setPrefill}
                 />
             </box>
             <box

@@ -154,6 +154,8 @@ function SessionChat({ session, initialPrompt, prefillPrompt }: { session: Sessi
             sessionId={session.id}
             setMessages={setMessages}
             prefill={prefill}
+            messages={messages}
+            setPrefill={setPrefill}
         >
             {
                 messages.map(msg => (
