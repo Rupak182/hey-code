@@ -36,6 +36,7 @@ HeyCode is organized as a monorepo containing the following packages:
 - **Git-Backed Version Control (Fork, Revert, & Undo):** Every message automatically creates a shadow Git checkpoint in your workspace. Easily revert files back to any previous prompt state, fork a new session branch, or type `/undo` to discard the last turn and revert your changes.
 - **Inline Diff Previews:** Automatic, inline visual unified diff previews for all file creations (`writeFile`) and edits (`editFile`) rendered directly in the chat flow, color-coded for optimal readability.
 - **Web Search Integration:** Powered by the official Exa SDK, allowing the agent to fetch highly relevant programming solutions, library APIs, and latest documentation snippets from the internet.
+- **AGENTS.md Custom Instructions:** Place an `AGENTS.md` file in your workspace root to inject project-specific rules, style guides, or build commands directly into the AI's system prompt context.
 - **Multi-Provider AI Support:** Works with Google Gemini models (e.g. `gemini-2.5-flash`, `gemini-3.5-flash`, `gemini-2.5-flash-lite`), Groq high-speed models (e.g. `openai/gpt-oss-120b`, `qwen/qwen3-32b`), OpenAI models (e.g. `gpt-5.5`, `gpt-5.4`), and Anthropic models (e.g. `claude-sonnet-4-6`, `claude-opus-4-8`).
 
 ---
@@ -142,6 +143,15 @@ By default, the agent operates in the directory from which the CLI is launched. 
    cd /path/to/your/target-project
    heycode
    ```
+
+### 🤖 Developer Instructions (`AGENTS.md`)
+
+You can steer the agent's behavior by placing an `AGENTS.md` file in the root of your target project. 
+
+When `AGENTS.md` is present in the CWD:
+- Its contents are automatically loaded as custom project instructions and appended to the system prompt.
+- An `AGENTS.md Specification` block is included to instruct the agent on scope, precedence, and rule hierarchy.
+- If no `AGENTS.md` file is found, it is completely skipped to save prompt tokens.
 
 > [!NOTE]
 > **Git Checkpoint Isolation:** Each workspace directory gets its own hidden shadow Git repository located at `${HEYCODE_CWD}/.heycode/git`. Git checkpoints and branches are completely isolated to each individual directory. If you change your workspace directory, the session history in the database persists, but you can only perform revert/fork operations on sessions that match your currently active directory.
