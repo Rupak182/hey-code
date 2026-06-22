@@ -36,7 +36,7 @@ HeyCode is organized as a monorepo containing the following packages:
 - **Git-Backed Version Control (Fork, Revert, & Undo):** Every message automatically creates a shadow Git checkpoint in your workspace. Easily revert files back to any previous prompt state, fork a new session branch, or type `/undo` to discard the last turn and revert your changes.
 - **Inline Diff Previews:** Automatic, inline visual unified diff previews for all file creations (`writeFile`) and edits (`editFile`) rendered directly in the chat flow, color-coded for optimal readability.
 - **Web Search Integration:** Powered by the official Exa SDK, allowing the agent to fetch highly relevant programming solutions, library APIs, and latest documentation snippets from the internet.
-- **Multi-Provider AI Support:** Works with Google Gemini models (e.g. `gemini-2.5-flash`, `gemini-3.5-flash`, `gemini-2.5-flash-lite`) and Groq high-speed models (e.g. `openai/gpt-oss-120b`, `qwen/qwen3-32b`).
+- **Multi-Provider AI Support:** Works with Google Gemini models (e.g. `gemini-2.5-flash`, `gemini-3.5-flash`, `gemini-2.5-flash-lite`), Groq high-speed models (e.g. `openai/gpt-oss-120b`, `qwen/qwen3-32b`), OpenAI models (e.g. `gpt-5.5`, `gpt-5.4`), and Anthropic models (e.g. `claude-sonnet-4-6`, `claude-opus-4-8`).
 
 ---
 
@@ -45,7 +45,7 @@ HeyCode is organized as a monorepo containing the following packages:
 ### Prerequisites
 
 *   [Bun](https://bun.sh/) — required as the runtime
-*   A Google Gemini API Key / Groq API Key
+*   A Google Gemini, Groq, OpenAI, or Anthropic API Key
 *   *(Optional)* An Exa API Key for web search capabilities
 
 ### Installation
@@ -62,10 +62,13 @@ HeyCode reads its configuration from `~/.heycode/config.json`. The `~/.heycode` 
 {
   "GOOGLE_GENERATIVE_AI_API_KEY": "AIzaSy...",
   "GROQ_API_KEY": "...",
+  "OPENAI_API_KEY": "...",
+  "ANTHROPIC_API_KEY": "...",
   "EXA_API_KEY": "..."
 }
 ```
-> `EXA_API_KEY` is optional and only needed for web search capabilities.
+> [!NOTE]
+> You only need to provide the API keys for the model providers you intend to use (e.g. only `GOOGLE_GENERATIVE_AI_API_KEY` if using Gemini models). `EXA_API_KEY` is optional and only needed if you want web search capabilities.
 
 ### Run
 
@@ -107,10 +110,12 @@ That's it! On the first launch, HeyCode will automatically:
     {
       "GOOGLE_GENERATIVE_AI_API_KEY": "AIzaSy...",
       "GROQ_API_KEY": "...",
+      "OPENAI_API_KEY": "...",
+      "ANTHROPIC_API_KEY": "...",
       "EXA_API_KEY": "..."
     }
     ```
-    Alternatively, create a local `.env` file in the project root with the same keys.
+    Alternatively, create a local `.env` file in the project root with the same keys. Only the keys for the providers you wish to use are required.
 
 4.  **Run in development mode:**
     ```bash

@@ -71,8 +71,39 @@ export const SUPPORTED_CHAT_MODELS=[
             inputUsdPerMillionTokens:0.60,
             outputUsdPerMillionTokens:3.00
         },
+    },
+    {
+        id:'gpt-5.5',
+        provider:'openai',
+        pricing:{
+            inputUsdPerMillionTokens:5.00,
+            outputUsdPerMillionTokens:30.00
+        },
+    },
+    {
+        id:'gpt-5.4',
+        provider:'openai',
+        pricing:{
+            inputUsdPerMillionTokens:2.50,
+            outputUsdPerMillionTokens:15.00
+        },
+    },
+    {
+        id:'claude-opus-4-8',
+        provider:'anthropic',
+        pricing:{
+            inputUsdPerMillionTokens:5.00,
+            outputUsdPerMillionTokens:25.00
+        },
+    },
+    {
+        id:'claude-sonnet-4-6',
+        provider:'anthropic',
+        pricing:{
+            inputUsdPerMillionTokens:3.00,
+            outputUsdPerMillionTokens:15.00
+        },
     }
-    
 ] as const satisfies readonly SupportedChatModelDefinition[]
 
 
@@ -86,4 +117,4 @@ export function findSupportedChatModel(modelId:string){
 }
 
 
-export const DEFAULT_CHAT_MODEL_ID="gemini-2.5-flash-lite"
+export const DEFAULT_CHAT_MODEL_ID="openai/gpt-oss-120b"
