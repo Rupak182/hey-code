@@ -4,6 +4,7 @@ import { match } from "assert"
 import { mkdir, readdir, readFile, stat, writeFile } from "fs/promises"
 import { dirname, isAbsolute, join, relative, resolve } from "path"
 import { createPatch } from "diff"
+import { executeMcpTool } from "./mcp/client"
 
 
 const MAX_FILE_SIZE = 10_000
@@ -295,7 +296,10 @@ export async function executeLocalTool(toolName: string, input: unknown, mode: M
         }
 
         default:
-            throw new Error(`Unknown tool: ${toolName}`)
+            if (toolName.includes("__")) {
+                return await executeMcpTool(toolName, input);
+            }
+            throw new Error(`Unknown tool: ${toolName}`);
 
     }
 }

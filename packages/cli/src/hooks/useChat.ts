@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { checkApproval, getToolDescription, ApprovalDecision, type ApprovalPolicy, type ToolInputMap } from "../lib/safety"
 import { commitForMessage, switchSession } from "../lib/git"
 import { useToast } from "../components/providers/toast"
+import { getMcpToolSchemas } from "../lib/mcp/client"
 
 
 
@@ -79,6 +80,7 @@ export function useChat(sessionId: string, initialMessages: Message[]) {
                         messages: messages,
                         model: message.metadata?.model ?? metadata?.model,
                         mode: message.metadata?.mode ?? metadata?.mode,
+                        mcpTools: getMcpToolSchemas(),
                     }
                 }
             }
@@ -93,8 +95,9 @@ export function useChat(sessionId: string, initialMessages: Message[]) {
         transport,
         onToolCall({ toolCall }) {
             const mode = chat.messages.at(-1)?.metadata?.mode ?? Mode.BUILD
+            const isMcpTool = toolCall.toolName.includes("__");
 
-            if (!(toolCall.toolName in toolInputSchemas)) {
+            if (!isMcpTool && !(toolCall.toolName in toolInputSchemas)) {
                 chat.addToolOutput({
                     tool: toolCall.toolName as keyof ChatTools,
                     toolCallId: toolCall.toolCallId,
@@ -104,16 +107,20 @@ export function useChat(sessionId: string, initialMessages: Message[]) {
                 return
             }
 
-            const toolName = toolCall.toolName as keyof ToolInputMap
-            const input = toolCall.input as ToolInputMap[typeof toolName]
+            let decision = ApprovalDecision.APPROVED;
+            let toolName: keyof ToolInputMap | undefined;
+            let input: any;
 
-            // Perform safety check passing policy
-            const decision = checkApproval({ 
-                toolName, 
-                input, 
-                mode, 
-                policy
-            })
+            if (!isMcpTool) {
+                toolName = toolCall.toolName as keyof ToolInputMap
+                input = toolCall.input as ToolInputMap[typeof toolName]
+                decision = checkApproval({ 
+                    toolName, 
+                    input, 
+                    mode, 
+                    policy
+                })
+            }
 
             if (decision === ApprovalDecision.REJECTED) {
                 chat.addToolOutput({
@@ -125,7 +132,7 @@ export function useChat(sessionId: string, initialMessages: Message[]) {
                 return
             }
 
-            if (decision === ApprovalDecision.NEEDS_CONFIRMATION) {
+            if (decision === ApprovalDecision.NEEDS_CONFIRMATION && toolName) {
                 const newApproval: PendingApproval = {
                     toolCallId: toolCall.toolCallId,
                     toolName: toolCall.toolName,

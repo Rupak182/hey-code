@@ -1,5 +1,6 @@
 import { loadGlobalConfig } from "@heycode/shared";
 import path from "path";
+import { initializeMcpServers } from "./mcp/client";
 
 /**
  * Boots the CLI environment: loads configurations, runs Drizzle migrations,
@@ -45,4 +46,8 @@ export async function bootstrap() {
     console.error("Failed to start Hono server:", error);
     process.exit(1);
   }
+
+  initializeMcpServers().catch((error) => {
+    console.error("Failed to initialize MCP servers in background:", error);
+  });
 }
