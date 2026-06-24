@@ -8,7 +8,7 @@ import { Hono } from "hono";
 import { db } from "@heycode/database/client";
 import { sessions } from "@heycode/database";
 import { eq, and } from "drizzle-orm";
-import { validateUIMessages, convertToModelMessages, streamText, generateId } from "ai";
+import { validateUIMessages, convertToModelMessages, streamText, generateId, tool, jsonSchema } from "ai";
 import { buildSystemPrompt } from "../system-prompt";
 import { shouldCompress, compressHistory, performCompaction } from "../lib/compaction";
 
@@ -24,13 +24,20 @@ type ChatMessageMetadata = {
 
 type HeyCodeUIMessage = UIMessage<ChatMessageMetadata, never, InferUITools<ToolContracts>>
 
+const mcpToolSchema = z.object({
+    name: z.string(),
+    description: z.string().optional(),
+    inputSchema: z.any().optional()
+})
+
 const submitSchema = z.object({
     id: z.string(),
     messages: z.array(
         z.custom<HeyCodeUIMessage>((value) => value != null && typeof value === "object" && "id" in value && "parts" in value)
     ).min(1),
     mode: z.enum([Mode.BUILD, Mode.PLAN]),
-    model: z.string().refine(isSupportedChatModel, "Unsupported model")
+    model: z.string().refine(isSupportedChatModel, "Unsupported model"),
+    mcpTools: z.array(mcpToolSchema).optional()
 })
 
 const hasPendingToolCalls = (messages: HeyCodeUIMessage) => {
@@ -57,7 +64,7 @@ const app = new Hono<AuthenticatedEnv>()
 
         const userId = c.get("userId")
 
-        const { id, messages, mode, model } = c.req.valid("json");
+        const { id, messages, mode, model, mcpTools } = c.req.valid("json");
 
         const session = await db.select()
             .from(sessions)
@@ -72,6 +79,15 @@ const app = new Hono<AuthenticatedEnv>()
 
         const startTime = Date.now()
         const tools = getToolContracts(mode);
+        const combinedTools: Record<string, any> = { ...tools };
+        if (mcpTools && mcpTools.length > 0) {
+            for (const mcpTool of mcpTools) {
+                combinedTools[mcpTool.name] = tool({
+                    description: mcpTool.description,
+                    inputSchema: jsonSchema(mcpTool.inputSchema || { type: "object", properties: {} })
+                });
+            }
+        }
         const resolvedModel = resolveChatModel(model)
         const previousMessages = Array.isArray(session.messages)
             ? (session.messages as unknown as HeyCodeUIMessage[])
@@ -142,15 +158,15 @@ const app = new Hono<AuthenticatedEnv>()
 
         // Filter out compacted messages so the LLM doesn't see them
         const activeMessages = nextMessages.filter(msg => !msg.metadata?.compacted)
-        const modelMessages = await convertToModelMessages(activeMessages, { tools })
+        const modelMessages = await convertToModelMessages(activeMessages, { tools: combinedTools as any })
 
         let completedUsage: LanguageModelUsage | null = null
 
         const result = streamText({
             model: resolvedModel.model,
-            system: buildSystemPrompt({ mode }),
+            system: buildSystemPrompt({ mode, mcpTools }),
             messages: modelMessages,
-            tools: tools,
+            tools: combinedTools as any,
             providerOptions: resolvedModel.providerOptions ? {
                 [resolvedModel.provider]: resolvedModel.providerOptions
             } : undefined,

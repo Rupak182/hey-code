@@ -3,7 +3,8 @@ import * as fs from "fs"
 import * as path from "path"
 
 type SystemPromptParams={
-    mode:Mode
+    mode:Mode,
+    mcpTools?: Array<{ name: string; description?: string }>
 }
 
 function getAgentInstructions(): string | null {
@@ -34,7 +35,7 @@ function getAgentsMdSpecSection(): string {
 - The contents of the AGENTS.md file at the root of the repo and any directories from the CWD up to the root are included with the developer message and don't need to be re-read. When working in a subdirectory of CWD, or a directory outside the CWD, check for any AGENTS.md files that may be applicable.`
 }
 
-export function buildSystemPrompt({mode}:SystemPromptParams):string{
+export function buildSystemPrompt({ mode, mcpTools }: SystemPromptParams): string {
     const parts:string[]=[]
 
     parts.push(`You are an expert software engineer working as an coding assistant inside a terminal application.
@@ -127,6 +128,14 @@ Follow these instructions carefully as they contain important context about this
                 creating new files or rewriting most of the file.'
                 
             `) 
+        }
+
+        if (mcpTools && mcpTools.length > 0) {
+            parts.push(`
+                ## Model Context Protocol (MCP) Tools
+                You have access to the following external MCP tools. They are namespaced with the server name prefix (e.g. \`serverName__toolName\`):
+                ${mcpTools.map(t => `- **${t.name}**: ${t.description || "No description provided"}`).join("\n")}
+            `);
         }
 
         return parts.join("\n\n")
