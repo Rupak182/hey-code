@@ -30,6 +30,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@ai-sdk/mcp": "^1.0.52",
     "@ai-sdk/react": "^3.0.206",
     "@opentui/core": "^0.3.2",
     "@opentui/react": "^0.3.2",
