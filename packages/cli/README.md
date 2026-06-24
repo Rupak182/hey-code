@@ -156,6 +156,40 @@ When `AGENTS.md` is present in the CWD:
 > [!NOTE]
 > **Git Checkpoint Isolation:** Each workspace directory gets its own hidden shadow Git repository located at `${HEYCODE_CWD}/.heycode/git`. Git checkpoints and branches are completely isolated to each individual directory. If you change your workspace directory, the session history in the database persists, but you can only perform revert/fork operations on sessions that match your currently active directory.
 
+### 🔌 Model Context Protocol (MCP) Support
+
+HeyCode supports Model Context Protocol (MCP), enabling you to dynamically connect external tools (like filesystem servers, database interfaces, or APIs) directly to the AI agent.
+
+#### 1. Configuring MCP Servers
+HeyCode automatically loads MCP server configurations from:
+1. **Workspace-specific config**: `heycode.json` in your workspace root.
+2. **Global user-config**: `~/.heycode/mcp.json`.
+
+Below is an example config (`heycode.json`) to register a filesystem tool server:
+```json
+{
+  "mcp": {
+    "filesystem": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/path/to/your/workspace"
+      ],
+      "enabled": true
+    }
+  }
+}
+```
+
+#### 2. Transport Protocol Options
+*   **`stdio`**: Spawns a local executable. Requires `"command"` (e.g. `npx`, `python3`, `node`) and optional `"args"` and `"env"` variables.
+*   **`sse`**: Connects to a remote server. Requires `"url"` (e.g. `http://localhost:5000/sse`).
+
+#### 3. Execution & Namespacing
+*   **Automatic Namespace**: Dynamic tools are registered with a namespace prefix based on the server name: `serverName__toolName` (e.g., `filesystem__read_file`).
+*   **Dynamic Prompt Injection**: Descriptions and schemas of active tools are automatically appended to the LLM's system instructions.
 
 ### 🗄️ Inspect the Database
 
@@ -184,6 +218,7 @@ Inside the HeyCode TUI, type `/` to open the command menu. Supported commands in
 | `/agents` | Switch agent mode (PLAN / BUILD) |
 | `/models` | Select between supported AI models (Gemini / Groq) |
 | `/sessions`| Browse and restore past conversation sessions |
+| `/mcps` | View and monitor active Model Context Protocol (MCP) server statuses |
 | `/theme` | Change the TUI color theme |
 | `/undo` | Discard the last user message and revert code changes |
 | `/exit` | Quit the TUI application |
@@ -191,3 +226,4 @@ Inside the HeyCode TUI, type `/` to open the command menu. Supported commands in
 ---
 
 This implementation is based on learning from [NightCode](https://github.com/code-with-antonio/nightcode).
+
