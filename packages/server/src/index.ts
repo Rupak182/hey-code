@@ -30,4 +30,9 @@ app.use("/chat/*",requireAuth)
 const routes= app.route("/sessions",sessions).route("/chat",chat).route("/auth",auth)
 
 export type Apptype= typeof routes
-export default {port:3000 ,fetch:app.fetch,idleTimeout:255}
+export default {
+    port: 3000,
+    fetch: app.fetch,
+    idleTimeout: 255,
+    maxRequestBodySize: 50 * 1024 * 1024 // 50MB
+}

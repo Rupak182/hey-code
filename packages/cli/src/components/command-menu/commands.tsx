@@ -1,5 +1,5 @@
 import { SUPPORTED_CHAT_MODELS } from "@heycode/shared";
-import { AgentsDialogContent, ModelsDialogContent, SessionsDialogContent, ThemeDialogContent } from "../dialogs";
+import { AgentsDialogContent, ModelsDialogContent, SessionsDialogContent, ThemeDialogContent, MCPsDialogContent } from "../dialogs";
 import type { Command, CommandContext } from "./types";
 import { performLogin } from "../../lib/oauth";
 import { clearAuth } from "../../lib/auth";
@@ -62,6 +62,17 @@ export const COMMANDS: Command[] = [
             ctx.dialog.open({
                 title:"Select Theme",
                 children: <ThemeDialogContent/>
+            })
+        }
+    },
+    {
+        name: "mcps",
+        description: "List active MCP connections",
+        value: "/mcps",
+        action:(ctx)=>{
+            ctx.dialog.open({
+                title:"MCP Connections",
+                children: <MCPsDialogContent/>
             })
         }
     },

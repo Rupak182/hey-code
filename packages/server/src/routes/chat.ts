@@ -8,7 +8,7 @@ import { Hono } from "hono";
 import { db } from "@heycode/database/client";
 import { sessions } from "@heycode/database";
 import { eq, and } from "drizzle-orm";
-import { validateUIMessages, convertToModelMessages, streamText, generateId, tool, jsonSchema } from "ai";
+import { validateUIMessages, convertToModelMessages, streamText, generateId, tool, jsonSchema, type Tool } from "ai";
 import { buildSystemPrompt } from "../system-prompt";
 import { shouldCompress, compressHistory, performCompaction } from "../lib/compaction";
 
@@ -79,7 +79,7 @@ const app = new Hono<AuthenticatedEnv>()
 
         const startTime = Date.now()
         const tools = getToolContracts(mode);
-        const combinedTools: Record<string, any> = { ...tools };
+        const combinedTools: Record<string, Tool> = { ...tools };
         if (mcpTools && mcpTools.length > 0) {
             for (const mcpTool of mcpTools) {
                 combinedTools[mcpTool.name] = tool({
@@ -158,7 +158,7 @@ const app = new Hono<AuthenticatedEnv>()
 
         // Filter out compacted messages so the LLM doesn't see them
         const activeMessages = nextMessages.filter(msg => !msg.metadata?.compacted)
-        const modelMessages = await convertToModelMessages(activeMessages, { tools: combinedTools as any })
+        const modelMessages = await convertToModelMessages(activeMessages, { tools: combinedTools })
 
         let completedUsage: LanguageModelUsage | null = null
 
@@ -166,7 +166,7 @@ const app = new Hono<AuthenticatedEnv>()
             model: resolvedModel.model,
             system: buildSystemPrompt({ mode, mcpTools }),
             messages: modelMessages,
-            tools: combinedTools as any,
+            tools: combinedTools,
             providerOptions: resolvedModel.providerOptions ? {
                 [resolvedModel.provider]: resolvedModel.providerOptions
             } : undefined,

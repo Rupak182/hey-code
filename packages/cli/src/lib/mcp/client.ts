@@ -27,7 +27,7 @@ export const heycodeConfigSchema = z.object({
 
 export type MCPServerConfig = z.infer<typeof mcpServerConfigSchema> & { name: string };
 
-interface ActiveConnection {
+export interface ActiveConnection {
   client: Awaited<ReturnType<typeof createMCPClient>> | null;
   config: MCPServerConfig;
   status: "connected" | "connecting" | "error";
@@ -99,6 +99,7 @@ export async function initializeMcpServers(): Promise<void> {
               command: cfg.command!,
               args: cfg.args || [],
               env: cfg.env,
+              stderr: "pipe",
             })
           : { type: "sse" as const, url: cfg.url! };
 
