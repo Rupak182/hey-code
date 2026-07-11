@@ -5,11 +5,14 @@ HeyCode is an interactive, AI-powered coding assistant designed to help develope
 > [!NOTE]
 > **Local-First Architecture:** HeyCode is self-contained. No cloud database server, no cloud authentication, and no external services (except your API keys) are required. Everything runs locally on your machine.
 
-<img width="1634" height="874" alt="image" src="https://github.com/user-attachments/assets/0a630efd-a936-494a-812b-a623422db0f4" />
+
+
+https://github.com/user-attachments/assets/2fd5cc4a-5435-4687-affb-57a49e8d0ff7
+
 
 ---
 
-<img width="1878" height="947" alt="image" src="https://github.com/user-attachments/assets/1c158e0b-fc70-4d8a-9266-75c525b9ed31" />
+<img width="1634" height="874" alt="image" src="https://github.com/user-attachments/assets/0a630efd-a936-494a-812b-a623422db0f4" />
 
 ---
 
